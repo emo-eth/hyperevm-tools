@@ -1,0 +1,55 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["dependencies"]
+# better deterministic deploys
+bytecode_hash = "none"
+remappings = [
+    "forge-std/=dependencies/forge-std-1.10.0/src/",
+    "create2-helpers/=dependencies/create2-helpers-0.5.0/src/",
+    "a16z-halmos-cheatcodes/=dependencies/a16z-halmos-cheatcodes-6da4e692c357ba6d641a2e677a28298cac9f76ab/src/",
+    "deterministic-proxy-factory/=dependencies/deterministic-proxy-factory-0.3.1/src/",
+]
+optimizer_runs = 9999999
+solc_version = "0.8.30"
+fs_permissions = [
+    { access = "read", path = "out" },
+    { access = "read", path = "forge-utils" },
+]
+dynamic_test_linking = true
+
+[profile.gambit]
+via_ir = false
+optimizer = false
+dynamic_test_linking = false
+
+[profile.gambit.invariant]
+runs = 0
+
+[profile.halmos]
+dynamic_test_linking = false
+
+[bind_json]
+out = "forge-utils/JsonBindings.sol"
+
+[fmt]
+line_length = 100
+single_line_statement_blocks = "multi"
+sort_imports = true
+contract_new_lines = true
+bracket_spacing = true
+number_underscore = "thousands"
+wrap_comments = true
+multline_func_header = "all"
+
+[lint]
+exclude_lints = ["mixed-case-function"]
+
+
+[dependencies]
+create2-helpers = "0.5.0"
+deterministic-proxy-factory = "0.3.1"
+forge-std = "1.10.0"
+a16z-halmos-cheatcodes = "6da4e692c357ba6d641a2e677a28298cac9f76ab"
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

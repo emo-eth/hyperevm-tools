@@ -1,0 +1,27 @@
+[[dependencies]]
+name = "a16z-halmos-cheatcodes"
+version = "6da4e692c357ba6d641a2e677a28298cac9f76ab"
+url = "https://soldeer-revisions.s3.amazonaws.com/a16z-halmos-cheatcodes/6da4e692c357ba6d641a2e677a28298cac9f76ab_02-07-2025_18:39:48_a16z-halmos-cheatcodes-6da4e692c357ba6d641a2e677a28298cac9f76ab.zip"
+checksum = "fb56679a5402ee037849e05f1e6d9aec64096d5c0e41e84c5c8d447123dfcb5f"
+integrity = "d61b6628a05317095546185bf5bd4037050fc2a9c7db23c54cc398a618266ea4"
+
+[[dependencies]]
+name = "create2-helpers"
+version = "0.5.0"
+url = "https://soldeer-revisions.s3.amazonaws.com/create2-helpers/0_5_0_13-05-2025_17:05:02_create2-helpers.zip"
+checksum = "2e68e7866282a2801318145d610ea6f8bc64f5a591e1b57a27dd7d49b7adad65"
+integrity = "a18fe8aa906f2840378580388d61d032095410791ce6dff1f9a86754a6755d44"
+
+[[dependencies]]
+name = "deterministic-proxy-factory"
+version = "0.3.1"
+url = "https://soldeer-revisions.s3.amazonaws.com/deterministic-proxy-factory/0_3_1_05-08-2025_03:14:39_deterministic-proxy-factory.zip"
+checksum = "e9dd9eb6213e63c9e835717ac7f2329a1f2537fffe6b6e4e466d117fdda62630"
+integrity = "cf22395d43e62ee471d509cc43c212ba00ab900b01a81977020492a378a9efd7"
+
+[[dependencies]]
+name = "forge-std"
+version = "1.10.0"
+url = "https://soldeer-revisions.s3.amazonaws.com/forge-std/1_10_0_02-08-2025_06:50:35_forge-std-1.10.zip"
+checksum = "8cc59e92a7762c170c15f2102c4f3718106dfc78239978fe87c64f316740cc09"
+integrity = "3fd441e2499c5cf04ef9b4126f52150a50dcef9cac1645ff7a955345e947cd04"
