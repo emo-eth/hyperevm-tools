@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract L1Read {
+library L1Read {
 
     struct Position {
         int64 szi;
@@ -140,7 +140,7 @@ contract L1Read {
     address constant BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS =
         0x0000000000000000000000000000000000000812;
 
-    function position(address user, uint16 perp) external view returns (Position memory) {
+    function position(address user, uint16 perp) internal view returns (Position memory) {
         bool success;
         bytes memory result;
         (success, result) = POSITION_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, perp));
@@ -148,7 +148,7 @@ contract L1Read {
         return abi.decode(result, (Position));
     }
 
-    function spotBalance(address user, uint64 token) external view returns (SpotBalance memory) {
+    function spotBalance(address user, uint64 token) internal view returns (SpotBalance memory) {
         bool success;
         bytes memory result;
         (success, result) = SPOT_BALANCE_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, token));
@@ -157,7 +157,7 @@ contract L1Read {
     }
 
     function userVaultEquity(address user, address vault)
-        external
+        internal
         view
         returns (UserVaultEquity memory)
     {
@@ -168,7 +168,7 @@ contract L1Read {
         return abi.decode(result, (UserVaultEquity));
     }
 
-    function withdrawable(address user) external view returns (Withdrawable memory) {
+    function withdrawable(address user) internal view returns (Withdrawable memory) {
         bool success;
         bytes memory result;
         (success, result) = WITHDRAWABLE_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
@@ -176,7 +176,7 @@ contract L1Read {
         return abi.decode(result, (Withdrawable));
     }
 
-    function delegations(address user) external view returns (Delegation[] memory) {
+    function delegations(address user) internal view returns (Delegation[] memory) {
         bool success;
         bytes memory result;
         (success, result) = DELEGATIONS_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
@@ -184,7 +184,7 @@ contract L1Read {
         return abi.decode(result, (Delegation[]));
     }
 
-    function delegatorSummary(address user) external view returns (DelegatorSummary memory) {
+    function delegatorSummary(address user) internal view returns (DelegatorSummary memory) {
         bool success;
         bytes memory result;
         (success, result) = DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
@@ -192,7 +192,7 @@ contract L1Read {
         return abi.decode(result, (DelegatorSummary));
     }
 
-    function markPx(uint32 index) external view returns (uint64) {
+    function markPx(uint32 index) internal view returns (uint64) {
         bool success;
         bytes memory result;
         (success, result) = MARK_PX_PRECOMPILE_ADDRESS.staticcall(abi.encode(index));
@@ -200,7 +200,7 @@ contract L1Read {
         return abi.decode(result, (uint64));
     }
 
-    function oraclePx(uint32 index) external view returns (uint64) {
+    function oraclePx(uint32 index) internal view returns (uint64) {
         bool success;
         bytes memory result;
         (success, result) = ORACLE_PX_PRECOMPILE_ADDRESS.staticcall(abi.encode(index));
@@ -208,7 +208,7 @@ contract L1Read {
         return abi.decode(result, (uint64));
     }
 
-    function spotPx(uint32 index) external view returns (uint64) {
+    function spotPx(uint32 index) internal view returns (uint64) {
         bool success;
         bytes memory result;
         (success, result) = SPOT_PX_PRECOMPILE_ADDRESS.staticcall(abi.encode(index));
@@ -216,7 +216,7 @@ contract L1Read {
         return abi.decode(result, (uint64));
     }
 
-    function l1BlockNumber() external view returns (uint64) {
+    function l1BlockNumber() internal view returns (uint64) {
         bool success;
         bytes memory result;
         (success, result) = L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS.staticcall(abi.encode());
@@ -224,7 +224,7 @@ contract L1Read {
         return abi.decode(result, (uint64));
     }
 
-    function perpAssetInfo(uint32 perp) external view returns (PerpAssetInfo memory) {
+    function perpAssetInfo(uint32 perp) internal view returns (PerpAssetInfo memory) {
         bool success;
         bytes memory result;
         (success, result) = PERP_ASSET_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(perp));
@@ -232,7 +232,7 @@ contract L1Read {
         return abi.decode(result, (PerpAssetInfo));
     }
 
-    function spotInfo(uint32 spot) external view returns (SpotInfo memory) {
+    function spotInfo(uint32 spot) internal view returns (SpotInfo memory) {
         bool success;
         bytes memory result;
         (success, result) = SPOT_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(spot));
@@ -240,7 +240,7 @@ contract L1Read {
         return abi.decode(result, (SpotInfo));
     }
 
-    function tokenInfo(uint32 token) external view returns (TokenInfo memory) {
+    function tokenInfo(uint32 token) internal view returns (TokenInfo memory) {
         bool success;
         bytes memory result;
         (success, result) = TOKEN_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(token));
@@ -248,7 +248,7 @@ contract L1Read {
         return abi.decode(result, (TokenInfo));
     }
 
-    function tokenSupply(uint32 token) external view returns (TokenSupply memory) {
+    function tokenSupply(uint32 token) internal view returns (TokenSupply memory) {
         bool success;
         bytes memory result;
         (success, result) = TOKEN_SUPPLY_PRECOMPILE_ADDRESS.staticcall(abi.encode(token));
@@ -256,7 +256,7 @@ contract L1Read {
         return abi.decode(result, (TokenSupply));
     }
 
-    function bbo(uint32 asset) external view returns (Bbo memory) {
+    function bbo(uint32 asset) internal view returns (Bbo memory) {
         bool success;
         bytes memory result;
         (success, result) = BBO_PRECOMPILE_ADDRESS.staticcall(abi.encode(asset));
@@ -265,7 +265,7 @@ contract L1Read {
     }
 
     function accountMarginSummary(uint32 perpDexIndex, address user)
-        external
+        internal
         view
         returns (AccountMarginSummary memory)
     {
@@ -277,7 +277,7 @@ contract L1Read {
         return abi.decode(result, (AccountMarginSummary));
     }
 
-    function coreUserExists(address user) external view returns (CoreUserExists memory) {
+    function coreUserExists(address user) internal view returns (CoreUserExists memory) {
         bool success;
         bytes memory result;
         (success, result) = CORE_USER_EXISTS_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
@@ -286,7 +286,7 @@ contract L1Read {
     }
 
     function borrowLendUserState(address user, uint64 token)
-        external
+        internal
         view
         returns (BorrowLendUserTokenState memory)
     {
@@ -299,7 +299,7 @@ contract L1Read {
     }
 
     function borrowLendReserveState(uint64 token)
-        external
+        internal
         view
         returns (BorrowLendReserveState memory)
     {
