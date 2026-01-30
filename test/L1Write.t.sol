@@ -2,7 +2,15 @@
 pragma solidity ^0.8.0;
 
 import { CoreWriter } from "../src/CoreWriter.sol";
-import { L1Write } from "../src/L1Write.sol";
+import {
+    BORROW_LEND_MAX_AMOUNT,
+    BorrowLendOperation,
+    FinalizeVariant,
+    L1Write,
+    NO_CLOID,
+    SPOT_DEX,
+    TimeInForce
+} from "../src/L1Write.sol";
 import { Test } from "forge-std/Test.sol";
 
 // Test contract that uses L1Write library
@@ -14,7 +22,7 @@ contract L1WriteCaller {
         uint64 limitPx,
         uint64 sz,
         bool reduceOnly,
-        L1Write.TimeInForce tif,
+        TimeInForce tif,
         uint128 cloid
     ) external {
         L1Write.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, tif, cloid);
@@ -44,11 +52,9 @@ contract L1WriteCaller {
         L1Write.sendUsdClassTransfer(ntl, toPerp);
     }
 
-    function sendFinalizeEvmContract(
-        uint64 token,
-        L1Write.FinalizeVariant variant,
-        uint64 createNonce
-    ) external {
+    function sendFinalizeEvmContract(uint64 token, FinalizeVariant variant, uint64 createNonce)
+        external
+    {
         L1Write.sendFinalizeEvmContract(token, variant, createNonce);
     }
 
@@ -83,11 +89,9 @@ contract L1WriteCaller {
         L1Write.sendReflectEvmSupplyChange(token, amount, isMint);
     }
 
-    function sendBorrowLendOperation(
-        L1Write.BorrowLendOperation operation,
-        uint64 token,
-        uint64 amount
-    ) external {
+    function sendBorrowLendOperation(BorrowLendOperation operation, uint64 token, uint64 amount)
+        external
+    {
         L1Write.sendBorrowLendOperation(operation, token, amount);
     }
 
@@ -116,7 +120,7 @@ contract L1WriteTest is Test {
         uint64 limitPx = 100_000_000; // 1.0 * 10^8
         uint64 sz = 50_000_000; // 0.5 * 10^8
         bool reduceOnly = false;
-        L1Write.TimeInForce tif = L1Write.TimeInForce.Gtc;
+        TimeInForce tif = TimeInForce.Gtc;
         uint128 cloid = 12_345;
 
         vm.expectEmit(true, false, false, true);
@@ -148,7 +152,7 @@ contract L1WriteTest is Test {
                 abi.encode(asset, isBuy, limitPx, sz, reduceOnly, 1, cloid)
             )
         );
-        caller.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, L1Write.TimeInForce.Alo, cloid);
+        caller.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, TimeInForce.Alo, cloid);
 
         // Test Gtc
         vm.expectEmit(true, false, false, true);
@@ -159,7 +163,7 @@ contract L1WriteTest is Test {
                 abi.encode(asset, isBuy, limitPx, sz, reduceOnly, 2, cloid)
             )
         );
-        caller.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, L1Write.TimeInForce.Gtc, cloid);
+        caller.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, TimeInForce.Gtc, cloid);
 
         // Test Ioc
         vm.expectEmit(true, false, false, true);
@@ -170,7 +174,7 @@ contract L1WriteTest is Test {
                 abi.encode(asset, isBuy, limitPx, sz, reduceOnly, 3, cloid)
             )
         );
-        caller.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, L1Write.TimeInForce.Ioc, cloid);
+        caller.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, TimeInForce.Ioc, cloid);
     }
 
     function test_sendVaultTransfer() public {
@@ -270,7 +274,7 @@ contract L1WriteTest is Test {
 
     function test_sendFinalizeEvmContract() public {
         uint64 token = 10;
-        L1Write.FinalizeVariant variant = L1Write.FinalizeVariant.Create;
+        FinalizeVariant variant = FinalizeVariant.Create;
         uint64 createNonce = 5;
 
         vm.expectEmit(true, false, false, true);
@@ -298,7 +302,7 @@ contract L1WriteTest is Test {
                 abi.encode(token, 1, createNonce)
             )
         );
-        caller.sendFinalizeEvmContract(token, L1Write.FinalizeVariant.Create, createNonce);
+        caller.sendFinalizeEvmContract(token, FinalizeVariant.Create, createNonce);
 
         // Test FirstStorageSlot
         vm.expectEmit(true, false, false, true);
@@ -309,7 +313,7 @@ contract L1WriteTest is Test {
                 abi.encode(token, 2, createNonce)
             )
         );
-        caller.sendFinalizeEvmContract(token, L1Write.FinalizeVariant.FirstStorageSlot, createNonce);
+        caller.sendFinalizeEvmContract(token, FinalizeVariant.FirstStorageSlot, createNonce);
 
         // Test CustomStorageSlot
         vm.expectEmit(true, false, false, true);
@@ -320,9 +324,7 @@ contract L1WriteTest is Test {
                 abi.encode(token, 3, createNonce)
             )
         );
-        caller.sendFinalizeEvmContract(
-            token, L1Write.FinalizeVariant.CustomStorageSlot, createNonce
-        );
+        caller.sendFinalizeEvmContract(token, FinalizeVariant.CustomStorageSlot, createNonce);
     }
 
     function test_sendAddApiWallet() public {
@@ -408,8 +410,8 @@ contract L1WriteTest is Test {
     function test_sendAsset() public {
         address destination = address(0x2222);
         address subAccount = address(0);
-        uint32 sourceDex = L1Write.SPOT_DEX;
-        uint32 destinationDex = L1Write.SPOT_DEX;
+        uint32 sourceDex = SPOT_DEX;
+        uint32 destinationDex = SPOT_DEX;
         uint64 token = 7;
         uint64 amount = 500_000;
 
@@ -463,7 +465,7 @@ contract L1WriteTest is Test {
     }
 
     function test_sendBorrowLendOperation() public {
-        L1Write.BorrowLendOperation operation = L1Write.BorrowLendOperation.Supply;
+        BorrowLendOperation operation = BorrowLendOperation.Supply;
         uint64 token = 20;
         uint64 amount = 10_000;
 
@@ -492,7 +494,7 @@ contract L1WriteTest is Test {
                 abi.encode(uint8(0), token, amount)
             )
         );
-        caller.sendBorrowLendOperation(L1Write.BorrowLendOperation.Supply, token, amount);
+        caller.sendBorrowLendOperation(BorrowLendOperation.Supply, token, amount);
 
         // Test Withdraw
         vm.expectEmit(true, false, false, true);
@@ -503,13 +505,13 @@ contract L1WriteTest is Test {
                 abi.encode(uint8(1), token, amount)
             )
         );
-        caller.sendBorrowLendOperation(L1Write.BorrowLendOperation.Withdraw, token, amount);
+        caller.sendBorrowLendOperation(BorrowLendOperation.Withdraw, token, amount);
     }
 
     function test_sendBorrowLendOperation_MaxAmount() public {
-        L1Write.BorrowLendOperation operation = L1Write.BorrowLendOperation.Withdraw;
+        BorrowLendOperation operation = BorrowLendOperation.Withdraw;
         uint64 token = 20;
-        uint64 amount = L1Write.BORROW_LEND_MAX_AMOUNT;
+        uint64 amount = BORROW_LEND_MAX_AMOUNT;
 
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
@@ -523,20 +525,18 @@ contract L1WriteTest is Test {
         caller.sendBorrowLendOperation(operation, token, amount);
     }
 
-    function test_actionEncoding() public {
+    function test_actionEncoding() public pure {
         // Test that action encoding is correct: version (0x01) + 3-byte action ID
         uint8 actionId = 5;
         bytes4 expected = bytes4(uint32(0x01000000 | actionId));
         assertEq(uint32(expected), 0x01000005);
     }
 
-    function test_constants() public {
+    function test_constants() public pure {
         // Test that constants are correct
-        assertEq(L1Write.SPOT_DEX, type(uint32).max);
-        assertEq(L1Write.BORROW_LEND_MAX_AMOUNT, 0);
-        assertEq(L1Write.NO_CLOID, 0);
-        assertEq(L1Write.ACTION_ID_LIMIT_ORDER, 1);
-        assertEq(L1Write.ACTION_ID_BORROW_LEND_OPERATION, 15);
+        assertEq(SPOT_DEX, type(uint32).max);
+        assertEq(BORROW_LEND_MAX_AMOUNT, 0);
+        assertEq(NO_CLOID, 0);
     }
 
 }

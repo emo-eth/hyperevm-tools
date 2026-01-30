@@ -3,11 +3,38 @@ pragma solidity ^0.8.0;
 
 import { CoreWriter } from "./CoreWriter.sol";
 
+// ============ Enums ============
+
+enum TimeInForce {
+    Alo, // 0 -> encoded as 1
+    Gtc, // 1 -> encoded as 2
+    Ioc // 2 -> encoded as 3
+}
+
+enum FinalizeVariant {
+    Create, // 0 -> encoded as 1
+    FirstStorageSlot, // 1 -> encoded as 2
+    CustomStorageSlot // 2 -> encoded as 3
+}
+
+enum BorrowLendOperation {
+    Supply, // 0
+    Withdraw // 1
+}
+
+// ============ Constants ============
+
+uint32 constant SPOT_DEX = type(uint32).max;
+uint64 constant BORROW_LEND_MAX_AMOUNT = 0;
+uint128 constant NO_CLOID = 0;
+
+// ============ Library ============
+
 library L1Write {
 
     address constant CORE_WRITER_ADDRESS = 0x3333333333333333333333333333333333333333;
 
-    // Action IDs
+    // Action IDs (internal implementation detail)
     uint8 constant ACTION_ID_LIMIT_ORDER = 1;
     uint8 constant ACTION_ID_VAULT_TRANSFER = 2;
     uint8 constant ACTION_ID_TOKEN_DELEGATE = 3;
@@ -23,29 +50,6 @@ library L1Write {
     uint8 constant ACTION_ID_SEND_ASSET = 13;
     uint8 constant ACTION_ID_REFLECT_EVM_SUPPLY_CHANGE = 14;
     uint8 constant ACTION_ID_BORROW_LEND_OPERATION = 15;
-
-    // Special values
-    uint32 constant SPOT_DEX = type(uint32).max;
-    uint64 constant BORROW_LEND_MAX_AMOUNT = 0;
-    uint128 constant NO_CLOID = 0;
-
-    // Enums
-    enum TimeInForce {
-        Alo, // 0 -> encoded as 1
-        Gtc, // 1 -> encoded as 2
-        Ioc // 2 -> encoded as 3
-    }
-
-    enum FinalizeVariant {
-        Create, // 0 -> encoded as 1
-        FirstStorageSlot, // 1 -> encoded as 2
-        CustomStorageSlot // 2 -> encoded as 3
-    }
-
-    enum BorrowLendOperation {
-        Supply, // 0
-        Withdraw // 1
-    }
 
     /// @notice Sends a limit order action
     /// @param asset The perp asset index

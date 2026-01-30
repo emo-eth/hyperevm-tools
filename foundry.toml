@@ -18,6 +18,7 @@ fs_permissions = [
     { access = "read", path = "forge-utils" },
 ]
 dynamic_test_linking = true
+# via_ir = true
 
 [profile.gambit]
 via_ir = false
