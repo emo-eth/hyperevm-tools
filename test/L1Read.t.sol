@@ -2,43 +2,43 @@
 pragma solidity ^0.8.0;
 
 import {
-    L1Read,
-    Position,
-    SpotBalance,
-    UserVaultEquity,
-    Withdrawable,
-    Delegation,
-    DelegatorSummary,
-    PerpAssetInfo,
-    SpotInfo,
-    TokenInfo,
-    TokenSupply,
-    UserBalance,
-    Bbo,
     AccountMarginSummary,
-    CoreUserExists,
+    AccountMarginSummaryPrecompileCallFailed,
     BasisAndValue,
-    BorrowLendUserTokenState,
+    Bbo,
+    BboPrecompileCallFailed,
     BorrowLendReserveState,
-    PositionPrecompileCallFailed,
-    SpotBalancePrecompileCallFailed,
-    VaultEquityPrecompileCallFailed,
-    WithdrawablePrecompileCallFailed,
+    BorrowLendReserveStatePrecompileCallFailed,
+    BorrowLendUserStatePrecompileCallFailed,
+    BorrowLendUserTokenState,
+    CoreUserExists,
+    CoreUserExistsPrecompileCallFailed,
+    Delegation,
     DelegationsPrecompileCallFailed,
+    DelegatorSummary,
     DelegatorSummaryPrecompileCallFailed,
+    L1BlockNumberPrecompileCallFailed,
+    L1Read,
     MarkPxPrecompileCallFailed,
     OraclePxPrecompileCallFailed,
-    SpotPxPrecompileCallFailed,
-    L1BlockNumberPrecompileCallFailed,
+    PerpAssetInfo,
     PerpAssetInfoPrecompileCallFailed,
+    Position,
+    PositionPrecompileCallFailed,
+    SpotBalance,
+    SpotBalancePrecompileCallFailed,
+    SpotInfo,
     SpotInfoPrecompileCallFailed,
+    SpotPxPrecompileCallFailed,
+    TokenInfo,
     TokenInfoPrecompileCallFailed,
+    TokenSupply,
     TokenSupplyPrecompileCallFailed,
-    BboPrecompileCallFailed,
-    AccountMarginSummaryPrecompileCallFailed,
-    CoreUserExistsPrecompileCallFailed,
-    BorrowLendUserStatePrecompileCallFailed,
-    BorrowLendReserveStatePrecompileCallFailed
+    UserBalance,
+    UserVaultEquity,
+    VaultEquityPrecompileCallFailed,
+    Withdrawable,
+    WithdrawablePrecompileCallFailed
 } from "../src/L1Read.sol";
 import { L1ReadCaller } from "./L1ReadCaller.sol";
 import { Test } from "forge-std/Test.sol";
@@ -51,13 +51,19 @@ contract L1ReadTest is Test {
         caller = new L1ReadCaller();
     }
 
-    function _setupMockPrecompile(address precompileAddr, bytes memory expectedCalldata, bytes memory returnData) internal {
+    function _setupMockPrecompile(
+        address precompileAddr,
+        bytes memory expectedCalldata,
+        bytes memory returnData
+    ) internal {
         // Verify the correct call is made and mock the return
         vm.expectCall(precompileAddr, expectedCalldata);
         vm.mockCall(precompileAddr, expectedCalldata, returnData);
     }
 
-    function _setupFailingPrecompile(address precompileAddr, bytes memory expectedCalldata) internal {
+    function _setupFailingPrecompile(address precompileAddr, bytes memory expectedCalldata)
+        internal
+    {
         // Verify the correct call is made and mock a revert
         vm.expectCall(precompileAddr, expectedCalldata);
         vm.mockCallRevert(precompileAddr, expectedCalldata, abi.encode("Precompile call failed"));
@@ -71,7 +77,9 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(user, perp);
-        _setupMockPrecompile(L1Read.POSITION_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPos));
+        _setupMockPrecompile(
+            L1Read.POSITION_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPos)
+        );
 
         Position memory result = caller.position(user, perp);
         assertEq(result.szi, expectedPos.szi);
@@ -103,7 +111,9 @@ contract L1ReadTest is Test {
             SpotBalance({ total: 10_000, hold: 5000, entryNtl: 25_000 });
 
         bytes memory expectedCalldata = abi.encode(user, token);
-        _setupMockPrecompile(L1Read.SPOT_BALANCE_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBalance));
+        _setupMockPrecompile(
+            L1Read.SPOT_BALANCE_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBalance)
+        );
 
         SpotBalance memory result = caller.spotBalance(user, token);
         assertEq(result.total, expectedBalance.total);
@@ -122,11 +132,7 @@ contract L1ReadTest is Test {
         this.spotBalance(user, token);
     }
 
-    function spotBalance(address user, uint64 token)
-        external
-        view
-        returns (SpotBalance memory)
-    {
+    function spotBalance(address user, uint64 token) external view returns (SpotBalance memory) {
         return caller.spotBalance(user, token);
     }
 
@@ -137,7 +143,9 @@ contract L1ReadTest is Test {
             UserVaultEquity({ equity: 1_000_000, lockedUntilTimestamp: 1_234_567_890 });
 
         bytes memory expectedCalldata = abi.encode(user, vault);
-        _setupMockPrecompile(L1Read.VAULT_EQUITY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedEquity));
+        _setupMockPrecompile(
+            L1Read.VAULT_EQUITY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedEquity)
+        );
 
         UserVaultEquity memory result = caller.userVaultEquity(user, vault);
         assertEq(result.equity, expectedEquity.equity);
@@ -165,11 +173,14 @@ contract L1ReadTest is Test {
 
     function test_withdrawable() public {
         address user = makeAddr("user");
-        Withdrawable memory expectedWithdrawable =
-            Withdrawable({ withdrawable: 500_000 });
+        Withdrawable memory expectedWithdrawable = Withdrawable({ withdrawable: 500_000 });
 
         bytes memory expectedCalldata = abi.encode(user);
-        _setupMockPrecompile(L1Read.WITHDRAWABLE_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedWithdrawable));
+        _setupMockPrecompile(
+            L1Read.WITHDRAWABLE_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedWithdrawable)
+        );
 
         Withdrawable memory result = caller.withdrawable(user);
         assertEq(result.withdrawable, expectedWithdrawable.withdrawable);
@@ -200,7 +211,9 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(user);
-        _setupMockPrecompile(L1Read.DELEGATIONS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedDelegations));
+        _setupMockPrecompile(
+            L1Read.DELEGATIONS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedDelegations)
+        );
 
         Delegation[] memory result = caller.delegations(user);
         assertEq(result.length, 2);
@@ -215,7 +228,9 @@ contract L1ReadTest is Test {
         Delegation[] memory expectedDelegations = new Delegation[](0);
 
         bytes memory expectedCalldata = abi.encode(user);
-        _setupMockPrecompile(L1Read.DELEGATIONS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedDelegations));
+        _setupMockPrecompile(
+            L1Read.DELEGATIONS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedDelegations)
+        );
 
         Delegation[] memory result = caller.delegations(user);
         assertEq(result.length, 0);
@@ -245,7 +260,11 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(user);
-        _setupMockPrecompile(L1Read.DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedSummary));
+        _setupMockPrecompile(
+            L1Read.DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedSummary)
+        );
 
         DelegatorSummary memory result = caller.delegatorSummary(user);
         assertEq(result.delegated, expectedSummary.delegated);
@@ -273,7 +292,9 @@ contract L1ReadTest is Test {
         uint64 expectedPrice = 100_000_000; // 1.0 * 10^8
 
         bytes memory expectedCalldata = abi.encode(index);
-        _setupMockPrecompile(L1Read.MARK_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice));
+        _setupMockPrecompile(
+            L1Read.MARK_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice)
+        );
 
         uint64 result = caller.markPx(index);
         assertEq(result, expectedPrice);
@@ -298,7 +319,9 @@ contract L1ReadTest is Test {
         uint64 expectedPrice = 99_500_000; // 0.995 * 10^8
 
         bytes memory expectedCalldata = abi.encode(index);
-        _setupMockPrecompile(L1Read.ORACLE_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice));
+        _setupMockPrecompile(
+            L1Read.ORACLE_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice)
+        );
 
         uint64 result = caller.oraclePx(index);
         assertEq(result, expectedPrice);
@@ -323,7 +346,9 @@ contract L1ReadTest is Test {
         uint64 expectedPrice = 98_000_000; // 0.98 * 10^8
 
         bytes memory expectedCalldata = abi.encode(index);
-        _setupMockPrecompile(L1Read.SPOT_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice));
+        _setupMockPrecompile(
+            L1Read.SPOT_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice)
+        );
 
         uint64 result = caller.spotPx(index);
         assertEq(result, expectedPrice);
@@ -347,7 +372,11 @@ contract L1ReadTest is Test {
         uint64 expectedBlockNumber = 12_345;
 
         bytes memory expectedCalldata = "";
-        _setupMockPrecompile(L1Read.L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBlockNumber));
+        _setupMockPrecompile(
+            L1Read.L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedBlockNumber)
+        );
 
         uint64 result = caller.l1BlockNumber();
         assertEq(result, expectedBlockNumber);
@@ -372,7 +401,9 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(perp);
-        _setupMockPrecompile(L1Read.PERP_ASSET_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo));
+        _setupMockPrecompile(
+            L1Read.PERP_ASSET_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo)
+        );
 
         PerpAssetInfo memory result = caller.perpAssetInfo(perp);
         assertEq(keccak256(bytes(result.coin)), keccak256(bytes(expectedInfo.coin)));
@@ -398,11 +429,12 @@ contract L1ReadTest is Test {
 
     function test_spotInfo() public {
         uint32 spot = 1;
-        SpotInfo memory expectedInfo =
-            SpotInfo({ name: "BTC/USD", tokens: [uint64(1), uint64(2)] });
+        SpotInfo memory expectedInfo = SpotInfo({ name: "BTC/USD", tokens: [uint64(1), uint64(2)] });
 
         bytes memory expectedCalldata = abi.encode(spot);
-        _setupMockPrecompile(L1Read.SPOT_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo));
+        _setupMockPrecompile(
+            L1Read.SPOT_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo)
+        );
 
         SpotInfo memory result = caller.spotInfo(spot);
         assertEq(keccak256(bytes(result.name)), keccak256(bytes(expectedInfo.name)));
@@ -440,7 +472,9 @@ contract L1ReadTest is Test {
         expectedInfo.spots[1] = 2;
 
         bytes memory expectedCalldata = abi.encode(token);
-        _setupMockPrecompile(L1Read.TOKEN_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo));
+        _setupMockPrecompile(
+            L1Read.TOKEN_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo)
+        );
 
         TokenInfo memory result = caller.tokenInfo(token);
         assertEq(keccak256(bytes(result.name)), keccak256(bytes(expectedInfo.name)));
@@ -480,7 +514,9 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(token);
-        _setupMockPrecompile(L1Read.TOKEN_SUPPLY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedSupply));
+        _setupMockPrecompile(
+            L1Read.TOKEN_SUPPLY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedSupply)
+        );
 
         TokenSupply memory result = caller.tokenSupply(token);
         assertEq(result.maxSupply, expectedSupply.maxSupply);
@@ -512,7 +548,9 @@ contract L1ReadTest is Test {
         Bbo memory expectedBbo = Bbo({ bid: 99_500_000, ask: 100_500_000 });
 
         bytes memory expectedCalldata = abi.encode(asset);
-        _setupMockPrecompile(L1Read.BBO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBbo));
+        _setupMockPrecompile(
+            L1Read.BBO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBbo)
+        );
 
         Bbo memory result = caller.bbo(asset);
         assertEq(result.bid, expectedBbo.bid);
@@ -541,7 +579,11 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(perpDexIndex, user);
-        _setupMockPrecompile(L1Read.ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedSummary));
+        _setupMockPrecompile(
+            L1Read.ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedSummary)
+        );
 
         AccountMarginSummary memory result = caller.accountMarginSummary(perpDexIndex, user);
         assertEq(result.accountValue, expectedSummary.accountValue);
@@ -574,7 +616,9 @@ contract L1ReadTest is Test {
         CoreUserExists memory expectedExists = CoreUserExists({ exists: true });
 
         bytes memory expectedCalldata = abi.encode(user);
-        _setupMockPrecompile(L1Read.CORE_USER_EXISTS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedExists));
+        _setupMockPrecompile(
+            L1Read.CORE_USER_EXISTS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedExists)
+        );
 
         CoreUserExists memory result = caller.coreUserExists(user);
         assertEq(result.exists, expectedExists.exists);
@@ -603,7 +647,11 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(user, token);
-        _setupMockPrecompile(L1Read.BORROW_LEND_USER_STATE_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedState));
+        _setupMockPrecompile(
+            L1Read.BORROW_LEND_USER_STATE_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedState)
+        );
 
         BorrowLendUserTokenState memory result = caller.borrowLendUserState(user, token);
         assertEq(result.borrow.basis, expectedState.borrow.basis);
@@ -645,7 +693,11 @@ contract L1ReadTest is Test {
         });
 
         bytes memory expectedCalldata = abi.encode(token);
-        _setupMockPrecompile(L1Read.BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedState));
+        _setupMockPrecompile(
+            L1Read.BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedState)
+        );
 
         BorrowLendReserveState memory result = caller.borrowLendReserveState(token);
         assertEq(result.borrowYearlyRateBps, expectedState.borrowYearlyRateBps);
@@ -662,7 +714,9 @@ contract L1ReadTest is Test {
         uint64 token = 1;
 
         bytes memory expectedCalldata = abi.encode(token);
-        _setupFailingPrecompile(L1Read.BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS, expectedCalldata);
+        _setupFailingPrecompile(
+            L1Read.BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS, expectedCalldata
+        );
 
         vm.expectRevert(BorrowLendReserveStatePrecompileCallFailed.selector);
         this.borrowLendReserveState(token);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { L1Write, TimeInForce, FinalizeVariant, BorrowLendOperation } from "../src/L1Write.sol";
+import { BorrowLendOperation, FinalizeVariant, L1Write, TimeInForce } from "../src/L1Write.sol";
 
 /// @notice Test helper contract that exposes L1Write library functions for testing
 contract L1WriteCaller {
