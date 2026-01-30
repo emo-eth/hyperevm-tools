@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { L1Write } from "../src/L1Write.sol";
+import { L1Write, TimeInForce, FinalizeVariant, BorrowLendOperation } from "../src/L1Write.sol";
 
 /// @notice Test helper contract that exposes L1Write library functions for testing
 contract L1WriteCaller {
@@ -12,7 +12,7 @@ contract L1WriteCaller {
         uint64 limitPx,
         uint64 sz,
         bool reduceOnly,
-        L1Write.TimeInForce tif,
+        TimeInForce tif,
         uint128 cloid
     ) external {
         L1Write.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, tif, cloid);
@@ -42,11 +42,9 @@ contract L1WriteCaller {
         L1Write.sendUsdClassTransfer(ntl, toPerp);
     }
 
-    function sendFinalizeEvmContract(
-        uint64 token,
-        L1Write.FinalizeVariant variant,
-        uint64 createNonce
-    ) external {
+    function sendFinalizeEvmContract(uint64 token, FinalizeVariant variant, uint64 createNonce)
+        external
+    {
         L1Write.sendFinalizeEvmContract(token, variant, createNonce);
     }
 
@@ -81,11 +79,9 @@ contract L1WriteCaller {
         L1Write.sendReflectEvmSupplyChange(token, amount, isMint);
     }
 
-    function sendBorrowLendOperation(
-        L1Write.BorrowLendOperation operation,
-        uint64 token,
-        uint64 amount
-    ) external {
+    function sendBorrowLendOperation(BorrowLendOperation operation, uint64 token, uint64 amount)
+        external
+    {
         L1Write.sendBorrowLendOperation(operation, token, amount);
     }
 

@@ -1,36 +1,53 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import { L1Read } from "../src/L1Read.sol";
+import {
+    L1Read,
+    Position,
+    SpotBalance,
+    UserVaultEquity,
+    Withdrawable,
+    Delegation,
+    DelegatorSummary,
+    PerpAssetInfo,
+    SpotInfo,
+    TokenInfo,
+    TokenSupply,
+    Bbo,
+    AccountMarginSummary,
+    CoreUserExists,
+    BorrowLendUserTokenState,
+    BorrowLendReserveState
+} from "../src/L1Read.sol";
 
 /// @notice Test helper contract that exposes L1Read library functions for testing
 contract L1ReadCaller {
 
-    function position(address user, uint16 perp) external view returns (L1Read.Position memory) {
+    function position(address user, uint16 perp) external view returns (Position memory) {
         return L1Read.position(user, perp);
     }
 
-    function spotBalance(address user, uint64 token) external view returns (L1Read.SpotBalance memory) {
+    function spotBalance(address user, uint64 token) external view returns (SpotBalance memory) {
         return L1Read.spotBalance(user, token);
     }
 
     function userVaultEquity(address user, address vault)
         external
         view
-        returns (L1Read.UserVaultEquity memory)
+        returns (UserVaultEquity memory)
     {
         return L1Read.userVaultEquity(user, vault);
     }
 
-    function withdrawable(address user) external view returns (L1Read.Withdrawable memory) {
+    function withdrawable(address user) external view returns (Withdrawable memory) {
         return L1Read.withdrawable(user);
     }
 
-    function delegations(address user) external view returns (L1Read.Delegation[] memory) {
+    function delegations(address user) external view returns (Delegation[] memory) {
         return L1Read.delegations(user);
     }
 
-    function delegatorSummary(address user) external view returns (L1Read.DelegatorSummary memory) {
+    function delegatorSummary(address user) external view returns (DelegatorSummary memory) {
         return L1Read.delegatorSummary(user);
     }
 
@@ -50,42 +67,42 @@ contract L1ReadCaller {
         return L1Read.l1BlockNumber();
     }
 
-    function perpAssetInfo(uint32 perp) external view returns (L1Read.PerpAssetInfo memory) {
+    function perpAssetInfo(uint32 perp) external view returns (PerpAssetInfo memory) {
         return L1Read.perpAssetInfo(perp);
     }
 
-    function spotInfo(uint32 spot) external view returns (L1Read.SpotInfo memory) {
+    function spotInfo(uint32 spot) external view returns (SpotInfo memory) {
         return L1Read.spotInfo(spot);
     }
 
-    function tokenInfo(uint32 token) external view returns (L1Read.TokenInfo memory) {
+    function tokenInfo(uint32 token) external view returns (TokenInfo memory) {
         return L1Read.tokenInfo(token);
     }
 
-    function tokenSupply(uint32 token) external view returns (L1Read.TokenSupply memory) {
+    function tokenSupply(uint32 token) external view returns (TokenSupply memory) {
         return L1Read.tokenSupply(token);
     }
 
-    function bbo(uint32 asset) external view returns (L1Read.Bbo memory) {
+    function bbo(uint32 asset) external view returns (Bbo memory) {
         return L1Read.bbo(asset);
     }
 
     function accountMarginSummary(uint32 perpDexIndex, address user)
         external
         view
-        returns (L1Read.AccountMarginSummary memory)
+        returns (AccountMarginSummary memory)
     {
         return L1Read.accountMarginSummary(perpDexIndex, user);
     }
 
-    function coreUserExists(address user) external view returns (L1Read.CoreUserExists memory) {
+    function coreUserExists(address user) external view returns (CoreUserExists memory) {
         return L1Read.coreUserExists(user);
     }
 
     function borrowLendUserState(address user, uint64 token)
         external
         view
-        returns (L1Read.BorrowLendUserTokenState memory)
+        returns (BorrowLendUserTokenState memory)
     {
         return L1Read.borrowLendUserState(user, token);
     }
@@ -93,7 +110,7 @@ contract L1ReadCaller {
     function borrowLendReserveState(uint64 token)
         external
         view
-        returns (L1Read.BorrowLendReserveState memory)
+        returns (BorrowLendReserveState memory)
     {
         return L1Read.borrowLendReserveState(token);
     }
