@@ -346,7 +346,7 @@ contract L1ReadTest is Test {
     function test_l1BlockNumber() public {
         uint64 expectedBlockNumber = 12_345;
 
-        bytes memory expectedCalldata = abi.encode();
+        bytes memory expectedCalldata = "";
         _setupMockPrecompile(L1Read.L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBlockNumber));
 
         uint64 result = caller.l1BlockNumber();
@@ -354,7 +354,7 @@ contract L1ReadTest is Test {
     }
 
     function test_l1BlockNumber_Fail() public {
-        bytes memory expectedCalldata = abi.encode();
+        bytes memory expectedCalldata = "";
         _setupFailingPrecompile(L1Read.L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS, expectedCalldata);
 
         vm.expectRevert(L1BlockNumberPrecompileCallFailed.selector);
