@@ -6,15 +6,17 @@ import { CoreWriter } from "./CoreWriter.sol";
 // ============ Enums ============
 
 enum TimeInForce {
-    Alo, // 0 -> encoded as 1
-    Gtc, // 1 -> encoded as 2
-    Ioc // 2 -> encoded as 3
+    INVALID, // 0 - reserved
+    Alo, // 1
+    Gtc, // 2
+    Ioc // 3
 }
 
 enum FinalizeVariant {
-    Create, // 0 -> encoded as 1
-    FirstStorageSlot, // 1 -> encoded as 2
-    CustomStorageSlot // 2 -> encoded as 3
+    INVALID, // 0 - reserved
+    Create, // 1
+    FirstStorageSlot, // 2
+    CustomStorageSlot // 3
 }
 
 enum BorrowLendOperation {
@@ -34,24 +36,24 @@ library L1Write {
 
     address constant CORE_WRITER_ADDRESS = 0x3333333333333333333333333333333333333333;
 
-    // Action IDs (internal implementation detail)
-    uint8 constant ACTION_ID_LIMIT_ORDER = 1;
-    uint8 constant ACTION_ID_VAULT_TRANSFER = 2;
-    uint8 constant ACTION_ID_TOKEN_DELEGATE = 3;
-    uint8 constant ACTION_ID_STAKING_DEPOSIT = 4;
-    uint8 constant ACTION_ID_STAKING_WITHDRAW = 5;
-    uint8 constant ACTION_ID_SPOT_SEND = 6;
-    uint8 constant ACTION_ID_USD_CLASS_TRANSFER = 7;
-    uint8 constant ACTION_ID_FINALIZE_EVM_CONTRACT = 8;
-    uint8 constant ACTION_ID_ADD_API_WALLET = 9;
-    uint8 constant ACTION_ID_CANCEL_ORDER_BY_OID = 10;
-    uint8 constant ACTION_ID_CANCEL_ORDER_BY_CLOID = 11;
-    uint8 constant ACTION_ID_APPROVE_BUILDER_FEE = 12;
-    uint8 constant ACTION_ID_SEND_ASSET = 13;
-    uint8 constant ACTION_ID_REFLECT_EVM_SUPPLY_CHANGE = 14;
-    uint8 constant ACTION_ID_BORROW_LEND_OPERATION = 15;
+    // Action selectors (version byte 0x01 + 3-byte action ID)
+    bytes4 constant ACTION_LIMIT_ORDER = 0x01000001;
+    bytes4 constant ACTION_VAULT_TRANSFER = 0x01000002;
+    bytes4 constant ACTION_TOKEN_DELEGATE = 0x01000003;
+    bytes4 constant ACTION_STAKING_DEPOSIT = 0x01000004;
+    bytes4 constant ACTION_STAKING_WITHDRAW = 0x01000005;
+    bytes4 constant ACTION_SPOT_SEND = 0x01000006;
+    bytes4 constant ACTION_USD_CLASS_TRANSFER = 0x01000007;
+    bytes4 constant ACTION_FINALIZE_EVM_CONTRACT = 0x01000008;
+    bytes4 constant ACTION_ADD_API_WALLET = 0x01000009;
+    bytes4 constant ACTION_CANCEL_ORDER_BY_OID = 0x0100000a;
+    bytes4 constant ACTION_CANCEL_ORDER_BY_CLOID = 0x0100000b;
+    bytes4 constant ACTION_APPROVE_BUILDER_FEE = 0x0100000c;
+    bytes4 constant ACTION_SEND_ASSET = 0x0100000d;
+    bytes4 constant ACTION_REFLECT_EVM_SUPPLY_CHANGE = 0x0100000e;
+    bytes4 constant ACTION_BORROW_LEND_OPERATION = 0x0100000f;
 
-    /// @notice Sends a limit order action
+    /// @notice Encodes a limit order action
     /// @param asset The perp asset index
     /// @param isBuy Whether this is a buy order
     /// @param limitPx Limit price (10^8 * human readable value)
@@ -59,6 +61,21 @@ library L1Write {
     /// @param reduceOnly Whether this is a reduce-only order
     /// @param tif Time in force
     /// @param cloid Client order ID (NO_CLOID means no cloid)
+    function encodeLimitOrder(
+        uint32 asset,
+        bool isBuy,
+        uint64 limitPx,
+        uint64 sz,
+        bool reduceOnly,
+        TimeInForce tif,
+        uint128 cloid
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            ACTION_LIMIT_ORDER, abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif), cloid)
+        );
+    }
+
+    /// @notice Sends a limit order action
     function sendLimitOrder(
         uint32 asset,
         bool isBuy,
@@ -68,111 +85,197 @@ library L1Write {
         TimeInForce tif,
         uint128 cloid
     ) internal {
-        bytes memory encodedAction = abi.encode(
-            asset, isBuy, limitPx, sz, reduceOnly, uint8(tif) + 1, cloid
-        );
-        _sendAction(ACTION_ID_LIMIT_ORDER, encodedAction);
+        _sendAction(encodeLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, tif, cloid));
     }
 
-    /// @notice Sends a vault transfer action
+    /// @notice Encodes a vault transfer action
     /// @param vault The vault address
     /// @param isDeposit Whether this is a deposit (true) or withdrawal (false)
     /// @param usd Amount in USD (10^8 * human readable value)
-    function sendVaultTransfer(address vault, bool isDeposit, uint64 usd) internal {
-        bytes memory encodedAction = abi.encode(vault, isDeposit, usd);
-        _sendAction(ACTION_ID_VAULT_TRANSFER, encodedAction);
+    function encodeVaultTransfer(address vault, bool isDeposit, uint64 usd)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_VAULT_TRANSFER, abi.encode(vault, isDeposit, usd));
     }
 
-    /// @notice Sends a token delegate action
+    /// @notice Sends a vault transfer action
+    function sendVaultTransfer(address vault, bool isDeposit, uint64 usd) internal {
+        _sendAction(encodeVaultTransfer(vault, isDeposit, usd));
+    }
+
+    /// @notice Encodes a token delegate action
     /// @param validator The validator address
     /// @param amount Amount to delegate/undelegate
     /// @param isUndelegate Whether this is an undelegate operation
+    function encodeTokenDelegate(address validator, uint64 amount, bool isUndelegate)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_TOKEN_DELEGATE, abi.encode(validator, amount, isUndelegate));
+    }
+
+    /// @notice Sends a token delegate action
     function sendTokenDelegate(address validator, uint64 amount, bool isUndelegate) internal {
-        bytes memory encodedAction = abi.encode(validator, amount, isUndelegate);
-        _sendAction(ACTION_ID_TOKEN_DELEGATE, encodedAction);
+        _sendAction(encodeTokenDelegate(validator, amount, isUndelegate));
+    }
+
+    /// @notice Encodes a staking deposit action
+    /// @param amount Amount to deposit
+    function encodeStakingDeposit(uint64 amount) internal pure returns (bytes memory) {
+        return abi.encodePacked(ACTION_STAKING_DEPOSIT, abi.encode(amount));
     }
 
     /// @notice Sends a staking deposit action
-    /// @param amount Amount to deposit
     function sendStakingDeposit(uint64 amount) internal {
-        bytes memory encodedAction = abi.encode(amount);
-        _sendAction(ACTION_ID_STAKING_DEPOSIT, encodedAction);
+        _sendAction(encodeStakingDeposit(amount));
+    }
+
+    /// @notice Encodes a staking withdraw action
+    /// @param amount Amount to withdraw
+    function encodeStakingWithdraw(uint64 amount) internal pure returns (bytes memory) {
+        return abi.encodePacked(ACTION_STAKING_WITHDRAW, abi.encode(amount));
     }
 
     /// @notice Sends a staking withdraw action
-    /// @param amount Amount to withdraw
     function sendStakingWithdraw(uint64 amount) internal {
-        bytes memory encodedAction = abi.encode(amount);
-        _sendAction(ACTION_ID_STAKING_WITHDRAW, encodedAction);
+        _sendAction(encodeStakingWithdraw(amount));
     }
 
-    /// @notice Sends a spot send action
+    /// @notice Encodes a spot send action
     /// @param destination Destination address
     /// @param token Token index
     /// @param amount Amount to send
+    function encodeSpotSend(address destination, uint64 token, uint64 amount)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_SPOT_SEND, abi.encode(destination, token, amount));
+    }
+
+    /// @notice Sends a spot send action
     function sendSpotSend(address destination, uint64 token, uint64 amount) internal {
-        bytes memory encodedAction = abi.encode(destination, token, amount);
-        _sendAction(ACTION_ID_SPOT_SEND, encodedAction);
+        _sendAction(encodeSpotSend(destination, token, amount));
+    }
+
+    /// @notice Encodes a USD class transfer action
+    /// @param ntl Amount in NTL (10^8 * human readable value)
+    /// @param toPerp Whether to transfer to perp (true) or from perp (false)
+    function encodeUsdClassTransfer(uint64 ntl, bool toPerp) internal pure returns (bytes memory) {
+        return abi.encodePacked(ACTION_USD_CLASS_TRANSFER, abi.encode(ntl, toPerp));
     }
 
     /// @notice Sends a USD class transfer action
-    /// @param ntl Amount in NTL (10^8 * human readable value)
-    /// @param toPerp Whether to transfer to perp (true) or from perp (false)
     function sendUsdClassTransfer(uint64 ntl, bool toPerp) internal {
-        bytes memory encodedAction = abi.encode(ntl, toPerp);
-        _sendAction(ACTION_ID_USD_CLASS_TRANSFER, encodedAction);
+        _sendAction(encodeUsdClassTransfer(ntl, toPerp));
     }
 
-    /// @notice Sends a finalize EVM contract action
+    /// @notice Encodes a finalize EVM contract action
     /// @param token Token index
     /// @param variant Finalize variant
     /// @param createNonce Create nonce (used if variant is Create)
+    function encodeFinalizeEvmContract(uint64 token, FinalizeVariant variant, uint64 createNonce)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(
+            ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, uint8(variant), createNonce)
+        );
+    }
+
+    /// @notice Sends a finalize EVM contract action
     function sendFinalizeEvmContract(uint64 token, FinalizeVariant variant, uint64 createNonce)
         internal
     {
-        bytes memory encodedAction = abi.encode(token, uint8(variant) + 1, createNonce);
-        _sendAction(ACTION_ID_FINALIZE_EVM_CONTRACT, encodedAction);
+        _sendAction(encodeFinalizeEvmContract(token, variant, createNonce));
+    }
+
+    /// @notice Encodes an add API wallet action
+    /// @param apiWallet The API wallet address
+    /// @param apiWalletName The API wallet name (empty string makes this the main API wallet/agent)
+    function encodeAddApiWallet(address apiWallet, string memory apiWalletName)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_ADD_API_WALLET, abi.encode(apiWallet, apiWalletName));
     }
 
     /// @notice Sends an add API wallet action
-    /// @param apiWallet The API wallet address
-    /// @param apiWalletName The API wallet name (empty string makes this the main API wallet/agent)
     function sendAddApiWallet(address apiWallet, string memory apiWalletName) internal {
-        bytes memory encodedAction = abi.encode(apiWallet, apiWalletName);
-        _sendAction(ACTION_ID_ADD_API_WALLET, encodedAction);
+        _sendAction(encodeAddApiWallet(apiWallet, apiWalletName));
+    }
+
+    /// @notice Encodes a cancel order by oid action
+    /// @param asset The perp asset index
+    /// @param oid The order ID to cancel
+    function encodeCancelOrderByOid(uint32 asset, uint64 oid) internal pure returns (bytes memory) {
+        return abi.encodePacked(ACTION_CANCEL_ORDER_BY_OID, abi.encode(asset, oid));
     }
 
     /// @notice Sends a cancel order by oid action
-    /// @param asset The perp asset index
-    /// @param oid The order ID to cancel
     function sendCancelOrderByOid(uint32 asset, uint64 oid) internal {
-        bytes memory encodedAction = abi.encode(asset, oid);
-        _sendAction(ACTION_ID_CANCEL_ORDER_BY_OID, encodedAction);
+        _sendAction(encodeCancelOrderByOid(asset, oid));
+    }
+
+    /// @notice Encodes a cancel order by cloid action
+    /// @param asset The perp asset index
+    /// @param cloid The client order ID to cancel
+    function encodeCancelOrderByCloid(uint32 asset, uint128 cloid)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_CANCEL_ORDER_BY_CLOID, abi.encode(asset, cloid));
     }
 
     /// @notice Sends a cancel order by cloid action
-    /// @param asset The perp asset index
-    /// @param cloid The client order ID to cancel
     function sendCancelOrderByCloid(uint32 asset, uint128 cloid) internal {
-        bytes memory encodedAction = abi.encode(asset, cloid);
-        _sendAction(ACTION_ID_CANCEL_ORDER_BY_CLOID, encodedAction);
+        _sendAction(encodeCancelOrderByCloid(asset, cloid));
+    }
+
+    /// @notice Encodes an approve builder fee action
+    /// @param maxFeeRate Maximum fee rate in decibps (e.g., 10 for 0.01%)
+    /// @param builder The builder address
+    function encodeApproveBuilderFee(uint64 maxFeeRate, address builder)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_APPROVE_BUILDER_FEE, abi.encode(maxFeeRate, builder));
     }
 
     /// @notice Sends an approve builder fee action
-    /// @param maxFeeRate Maximum fee rate in decibps (e.g., 10 for 0.01%)
-    /// @param builder The builder address
     function sendApproveBuilderFee(uint64 maxFeeRate, address builder) internal {
-        bytes memory encodedAction = abi.encode(maxFeeRate, builder);
-        _sendAction(ACTION_ID_APPROVE_BUILDER_FEE, encodedAction);
+        _sendAction(encodeApproveBuilderFee(maxFeeRate, builder));
     }
 
-    /// @notice Sends a send asset action
+    /// @notice Encodes a send asset action
     /// @param destination Destination address
     /// @param subAccount Sub-account address (zero address if not using sub-account)
     /// @param sourceDex Source DEX index (SPOT_DEX for spot)
     /// @param destinationDex Destination DEX index (SPOT_DEX for spot)
     /// @param token Token index
     /// @param amount Amount to send
+    function encodeAsset(
+        address destination,
+        address subAccount,
+        uint32 sourceDex,
+        uint32 destinationDex,
+        uint64 token,
+        uint64 amount
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(
+            ACTION_SEND_ASSET,
+            abi.encode(destination, subAccount, sourceDex, destinationDex, token, amount)
+        );
+    }
+
+    /// @notice Sends a send asset action
     function sendAsset(
         address destination,
         address subAccount,
@@ -181,38 +284,50 @@ library L1Write {
         uint64 token,
         uint64 amount
     ) internal {
-        bytes memory encodedAction = abi.encode(
-            destination, subAccount, sourceDex, destinationDex, token, amount
-        );
-        _sendAction(ACTION_ID_SEND_ASSET, encodedAction);
+        _sendAction(encodeAsset(destination, subAccount, sourceDex, destinationDex, token, amount));
     }
 
-    /// @notice Sends a reflect EVM supply change for aligned quote token action
+    /// @notice Encodes a reflect EVM supply change for aligned quote token action
     /// @param token Token index
     /// @param amount Amount to mint/burn
     /// @param isMint Whether this is a mint (true) or burn (false)
-    function sendReflectEvmSupplyChange(uint64 token, uint64 amount, bool isMint) internal {
-        bytes memory encodedAction = abi.encode(token, amount, isMint);
-        _sendAction(ACTION_ID_REFLECT_EVM_SUPPLY_CHANGE, encodedAction);
+    function encodeReflectEvmSupplyChange(uint64 token, uint64 amount, bool isMint)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(ACTION_REFLECT_EVM_SUPPLY_CHANGE, abi.encode(token, amount, isMint));
     }
 
-    /// @notice Sends a borrow lend operation action (Testnet-only)
+    /// @notice Sends a reflect EVM supply change for aligned quote token action
+    function sendReflectEvmSupplyChange(uint64 token, uint64 amount, bool isMint) internal {
+        _sendAction(encodeReflectEvmSupplyChange(token, amount, isMint));
+    }
+
+    /// @notice Encodes a borrow lend operation action (Testnet-only)
     /// @param operation Operation type
     /// @param token Token index
     /// @param amount Amount (BORROW_LEND_MAX_AMOUNT means maximally apply the operation)
+    function encodeBorrowLendOperation(BorrowLendOperation operation, uint64 token, uint64 amount)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(
+            ACTION_BORROW_LEND_OPERATION, abi.encode(uint8(operation), token, amount)
+        );
+    }
+
+    /// @notice Sends a borrow lend operation action (Testnet-only)
     function sendBorrowLendOperation(BorrowLendOperation operation, uint64 token, uint64 amount)
         internal
     {
-        bytes memory encodedAction = abi.encode(uint8(operation), token, amount);
-        _sendAction(ACTION_ID_BORROW_LEND_OPERATION, encodedAction);
+        _sendAction(encodeBorrowLendOperation(operation, token, amount));
     }
 
-    /// @notice Internal helper to encode and send an action to CoreWriter
-    /// @param actionId The action ID constant
-    /// @param encodedAction The ABI-encoded action data
-    function _sendAction(uint8 actionId, bytes memory encodedAction) private {
-        bytes4 action = bytes4(uint32(0x01000000 | actionId));
-        bytes memory data = abi.encodePacked(action, encodedAction);
+    /// @notice Internal helper to send an action to CoreWriter
+    /// @param data The fully encoded action data
+    function _sendAction(bytes memory data) private {
         CoreWriter(CORE_WRITER_ADDRESS).sendRawAction(data);
     }
 

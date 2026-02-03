@@ -127,8 +127,8 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_LIMIT_ORDER)),
-                abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif) + 1, cloid)
+                L1Write.ACTION_LIMIT_ORDER,
+                abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif), cloid)
             )
         );
 
@@ -148,7 +148,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_LIMIT_ORDER)),
+                L1Write.ACTION_LIMIT_ORDER,
                 abi.encode(asset, isBuy, limitPx, sz, reduceOnly, 1, cloid)
             )
         );
@@ -159,7 +159,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_LIMIT_ORDER)),
+                L1Write.ACTION_LIMIT_ORDER,
                 abi.encode(asset, isBuy, limitPx, sz, reduceOnly, 2, cloid)
             )
         );
@@ -170,7 +170,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_LIMIT_ORDER)),
+                L1Write.ACTION_LIMIT_ORDER,
                 abi.encode(asset, isBuy, limitPx, sz, reduceOnly, 3, cloid)
             )
         );
@@ -185,10 +185,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_VAULT_TRANSFER)),
-                abi.encode(vault, isDeposit, usd)
-            )
+            abi.encodePacked(L1Write.ACTION_VAULT_TRANSFER, abi.encode(vault, isDeposit, usd))
         );
 
         caller.sendVaultTransfer(vault, isDeposit, usd);
@@ -203,8 +200,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_TOKEN_DELEGATE)),
-                abi.encode(validator, amount, isUndelegate)
+                L1Write.ACTION_TOKEN_DELEGATE, abi.encode(validator, amount, isUndelegate)
             )
         );
 
@@ -216,10 +212,7 @@ contract L1WriteTest is Test {
 
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
-            address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_STAKING_DEPOSIT)), abi.encode(amount)
-            )
+            address(caller), abi.encodePacked(L1Write.ACTION_STAKING_DEPOSIT, abi.encode(amount))
         );
 
         caller.sendStakingDeposit(amount);
@@ -230,10 +223,7 @@ contract L1WriteTest is Test {
 
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
-            address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_STAKING_WITHDRAW)), abi.encode(amount)
-            )
+            address(caller), abi.encodePacked(L1Write.ACTION_STAKING_WITHDRAW, abi.encode(amount))
         );
 
         caller.sendStakingWithdraw(amount);
@@ -247,10 +237,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_SPOT_SEND)),
-                abi.encode(destination, token, amount)
-            )
+            abi.encodePacked(L1Write.ACTION_SPOT_SEND, abi.encode(destination, token, amount))
         );
 
         caller.sendSpotSend(destination, token, amount);
@@ -263,10 +250,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_USD_CLASS_TRANSFER)),
-                abi.encode(ntl, toPerp)
-            )
+            abi.encodePacked(L1Write.ACTION_USD_CLASS_TRANSFER, abi.encode(ntl, toPerp))
         );
 
         caller.sendUsdClassTransfer(ntl, toPerp);
@@ -281,8 +265,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_FINALIZE_EVM_CONTRACT)),
-                abi.encode(token, uint8(variant) + 1, createNonce)
+                L1Write.ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, uint8(variant), createNonce)
             )
         );
 
@@ -298,8 +281,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_FINALIZE_EVM_CONTRACT)),
-                abi.encode(token, 1, createNonce)
+                L1Write.ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, 1, createNonce)
             )
         );
         caller.sendFinalizeEvmContract(token, FinalizeVariant.Create, createNonce);
@@ -309,8 +291,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_FINALIZE_EVM_CONTRACT)),
-                abi.encode(token, 2, createNonce)
+                L1Write.ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, 2, createNonce)
             )
         );
         caller.sendFinalizeEvmContract(token, FinalizeVariant.FirstStorageSlot, createNonce);
@@ -320,8 +301,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_FINALIZE_EVM_CONTRACT)),
-                abi.encode(token, 3, createNonce)
+                L1Write.ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, 3, createNonce)
             )
         );
         caller.sendFinalizeEvmContract(token, FinalizeVariant.CustomStorageSlot, createNonce);
@@ -334,10 +314,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_ADD_API_WALLET)),
-                abi.encode(apiWallet, apiWalletName)
-            )
+            abi.encodePacked(L1Write.ACTION_ADD_API_WALLET, abi.encode(apiWallet, apiWalletName))
         );
 
         caller.sendAddApiWallet(apiWallet, apiWalletName);
@@ -350,10 +327,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_ADD_API_WALLET)),
-                abi.encode(apiWallet, apiWalletName)
-            )
+            abi.encodePacked(L1Write.ACTION_ADD_API_WALLET, abi.encode(apiWallet, apiWalletName))
         );
 
         caller.sendAddApiWallet(apiWallet, apiWalletName);
@@ -366,10 +340,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_CANCEL_ORDER_BY_OID)),
-                abi.encode(asset, oid)
-            )
+            abi.encodePacked(L1Write.ACTION_CANCEL_ORDER_BY_OID, abi.encode(asset, oid))
         );
 
         caller.sendCancelOrderByOid(asset, oid);
@@ -382,10 +353,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_CANCEL_ORDER_BY_CLOID)),
-                abi.encode(asset, cloid)
-            )
+            abi.encodePacked(L1Write.ACTION_CANCEL_ORDER_BY_CLOID, abi.encode(asset, cloid))
         );
 
         caller.sendCancelOrderByCloid(asset, cloid);
@@ -398,10 +366,7 @@ contract L1WriteTest is Test {
         vm.expectEmit(true, false, false, true);
         emit CoreWriter.RawAction(
             address(caller),
-            abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_APPROVE_BUILDER_FEE)),
-                abi.encode(maxFeeRate, builder)
-            )
+            abi.encodePacked(L1Write.ACTION_APPROVE_BUILDER_FEE, abi.encode(maxFeeRate, builder))
         );
 
         caller.sendApproveBuilderFee(maxFeeRate, builder);
@@ -419,7 +384,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_SEND_ASSET)),
+                L1Write.ACTION_SEND_ASSET,
                 abi.encode(destination, subAccount, sourceDex, destinationDex, token, amount)
             )
         );
@@ -439,7 +404,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_SEND_ASSET)),
+                L1Write.ACTION_SEND_ASSET,
                 abi.encode(destination, subAccount, sourceDex, destinationDex, token, amount)
             )
         );
@@ -456,8 +421,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_REFLECT_EVM_SUPPLY_CHANGE)),
-                abi.encode(token, amount, isMint)
+                L1Write.ACTION_REFLECT_EVM_SUPPLY_CHANGE, abi.encode(token, amount, isMint)
             )
         );
 
@@ -473,8 +437,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_BORROW_LEND_OPERATION)),
-                abi.encode(uint8(operation), token, amount)
+                L1Write.ACTION_BORROW_LEND_OPERATION, abi.encode(uint8(operation), token, amount)
             )
         );
 
@@ -490,8 +453,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_BORROW_LEND_OPERATION)),
-                abi.encode(uint8(0), token, amount)
+                L1Write.ACTION_BORROW_LEND_OPERATION, abi.encode(uint8(0), token, amount)
             )
         );
         caller.sendBorrowLendOperation(BorrowLendOperation.Supply, token, amount);
@@ -501,8 +463,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_BORROW_LEND_OPERATION)),
-                abi.encode(uint8(1), token, amount)
+                L1Write.ACTION_BORROW_LEND_OPERATION, abi.encode(uint8(1), token, amount)
             )
         );
         caller.sendBorrowLendOperation(BorrowLendOperation.Withdraw, token, amount);
@@ -517,8 +478,7 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                bytes4(uint32(0x01000000 | L1Write.ACTION_ID_BORROW_LEND_OPERATION)),
-                abi.encode(uint8(operation), token, amount)
+                L1Write.ACTION_BORROW_LEND_OPERATION, abi.encode(uint8(operation), token, amount)
             )
         );
 
