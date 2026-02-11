@@ -24,6 +24,7 @@ import {
     PerpAssetInfo,
     PerpAssetInfoPrecompileCallFailed,
     Position,
+    Position2PrecompileCallFailed,
     PositionPrecompileCallFailed,
     SpotBalance,
     SpotBalancePrecompileCallFailed,
@@ -102,6 +103,41 @@ contract L1ReadTest is Test {
 
     function position(address user, uint16 perp) external view returns (Position memory) {
         return caller.position(user, perp);
+    }
+
+    function test_position2() public {
+        address user = makeAddr("user");
+        uint32 perp = 65_535;
+        Position memory expectedPos = Position({
+            szi: -4321, entryNtl: 75_000, isolatedRawUsd: -1000, leverage: 5, isIsolated: false
+        });
+
+        bytes memory expectedCalldata = abi.encode(user, perp);
+        _setupMockPrecompile(
+            L1Read.POSITION2_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPos)
+        );
+
+        Position memory result = caller.position2(user, perp);
+        assertEq(result.szi, expectedPos.szi);
+        assertEq(result.entryNtl, expectedPos.entryNtl);
+        assertEq(result.isolatedRawUsd, expectedPos.isolatedRawUsd);
+        assertEq(result.leverage, expectedPos.leverage);
+        assertEq(result.isIsolated, expectedPos.isIsolated);
+    }
+
+    function test_position2_Fail() public {
+        address user = makeAddr("user");
+        uint32 perp = 65_535;
+
+        bytes memory expectedCalldata = abi.encode(user, perp);
+        _setupFailingPrecompile(L1Read.POSITION2_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        vm.expectRevert(Position2PrecompileCallFailed.selector);
+        this.position2(user, perp);
+    }
+
+    function position2(address user, uint32 perp) external view returns (Position memory) {
+        return caller.position2(user, perp);
     }
 
     function test_spotBalance() public {

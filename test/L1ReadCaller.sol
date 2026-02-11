@@ -27,6 +27,10 @@ contract L1ReadCaller {
         return L1Read.position(user, perp);
     }
 
+    function position2(address user, uint32 perp) external view returns (Position memory) {
+        return L1Read.position2(user, perp);
+    }
+
     function spotBalance(address user, uint64 token) external view returns (SpotBalance memory) {
         return L1Read.spotBalance(user, token);
     }

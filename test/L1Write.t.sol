@@ -128,7 +128,7 @@ contract L1WriteTest is Test {
             address(caller),
             abi.encodePacked(
                 L1Write.ACTION_LIMIT_ORDER,
-                abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif), cloid)
+                abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif) + 1, cloid)
             )
         );
 
@@ -265,7 +265,8 @@ contract L1WriteTest is Test {
         emit CoreWriter.RawAction(
             address(caller),
             abi.encodePacked(
-                L1Write.ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, uint8(variant), createNonce)
+                L1Write.ACTION_FINALIZE_EVM_CONTRACT,
+                abi.encode(token, uint8(variant) + 1, createNonce)
             )
         );
 
