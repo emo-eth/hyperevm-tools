@@ -6,17 +6,15 @@ import { CoreWriter } from "./CoreWriter.sol";
 // ============ Enums ============
 
 enum TimeInForce {
-    INVALID, // 0 - reserved
-    Alo, // 1
-    Gtc, // 2
-    Ioc // 3
+    Alo, // Encoded as 1
+    Gtc, // Encoded as 2
+    Ioc // Encoded as 3
 }
 
 enum FinalizeVariant {
-    INVALID, // 0 - reserved
-    Create, // 1
-    FirstStorageSlot, // 2
-    CustomStorageSlot // 3
+    Create, // Encoded as 1
+    FirstStorageSlot, // Encoded as 2
+    CustomStorageSlot // Encoded as 3
 }
 
 enum BorrowLendOperation {
@@ -56,8 +54,8 @@ library L1Write {
     /// @notice Encodes a limit order action
     /// @param asset The perp asset index
     /// @param isBuy Whether this is a buy order
-    /// @param limitPx Limit price (10^8 * human readable value)
-    /// @param sz Size (10^8 * human readable value)
+    /// @param limitPx Raw limit price in HyperCore units (protocol-defined precision)
+    /// @param sz Raw size in HyperCore units (protocol-defined precision)
     /// @param reduceOnly Whether this is a reduce-only order
     /// @param tif Time in force
     /// @param cloid Client order ID (NO_CLOID means no cloid)
@@ -71,7 +69,8 @@ library L1Write {
         uint128 cloid
     ) internal pure returns (bytes memory) {
         return abi.encodePacked(
-            ACTION_LIMIT_ORDER, abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif), cloid)
+            ACTION_LIMIT_ORDER,
+            abi.encode(asset, isBuy, limitPx, sz, reduceOnly, uint8(tif) + 1, cloid)
         );
     }
 
@@ -91,7 +90,7 @@ library L1Write {
     /// @notice Encodes a vault transfer action
     /// @param vault The vault address
     /// @param isDeposit Whether this is a deposit (true) or withdrawal (false)
-    /// @param usd Amount in USD (10^8 * human readable value)
+    /// @param usd Raw USD amount in HyperCore units (protocol-defined precision)
     function encodeVaultTransfer(address vault, bool isDeposit, uint64 usd)
         internal
         pure
@@ -162,7 +161,7 @@ library L1Write {
     }
 
     /// @notice Encodes a USD class transfer action
-    /// @param ntl Amount in NTL (10^8 * human readable value)
+    /// @param ntl Raw transfer amount in HyperCore units (protocol-defined precision)
     /// @param toPerp Whether to transfer to perp (true) or from perp (false)
     function encodeUsdClassTransfer(uint64 ntl, bool toPerp) internal pure returns (bytes memory) {
         return abi.encodePacked(ACTION_USD_CLASS_TRANSFER, abi.encode(ntl, toPerp));
@@ -183,7 +182,7 @@ library L1Write {
         returns (bytes memory)
     {
         return abi.encodePacked(
-            ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, uint8(variant), createNonce)
+            ACTION_FINALIZE_EVM_CONTRACT, abi.encode(token, uint8(variant) + 1, createNonce)
         );
     }
 

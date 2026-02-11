@@ -116,6 +116,7 @@ struct BorrowLendReserveState {
 // ============ Errors ============
 
 error PositionPrecompileCallFailed();
+error Position2PrecompileCallFailed();
 error SpotBalancePrecompileCallFailed();
 error VaultEquityPrecompileCallFailed();
 error WithdrawablePrecompileCallFailed();
@@ -165,12 +166,22 @@ library L1Read {
         0x0000000000000000000000000000000000000811;
     address constant BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS =
         0x0000000000000000000000000000000000000812;
+    address constant POSITION2_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000813;
 
     function position(address user, uint16 perp) internal view returns (Position memory) {
         (bool success, bytes memory result) =
             POSITION_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, perp));
         if (!success) {
             revert PositionPrecompileCallFailed();
+        }
+        return abi.decode(result, (Position));
+    }
+
+    function position2(address user, uint32 perp) internal view returns (Position memory) {
+        (bool success, bytes memory result) =
+            POSITION2_PRECOMPILE_ADDRESS.staticcall(abi.encode(user, perp));
+        if (!success) {
+            revert Position2PrecompileCallFailed();
         }
         return abi.decode(result, (Position));
     }
