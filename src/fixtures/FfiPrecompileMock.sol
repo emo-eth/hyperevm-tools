@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import { Vm } from "forge-std/Vm.sol";
+
+/// @title FfiPrecompileMock
+/// @notice Generic mock that forwards any call to the real chain via `cast call` FFI.
+/// @dev Deploy once (baking block number into runtime bytecode as an immutable),
+///      then `vm.etch` the runtime code to each precompile address.
+///      Each instance uses `address(this)` as the RPC target so a single
+///      bytecode works at every address.
+///
+///      Requirements:
+///        - `ffi = true` in foundry.toml
+///        - `FORK_RPC_URL` env var set (use `vm.setEnv` in setUp)
+///
+///      Usage:
+///        FfiPrecompileMock mock = new FfiPrecompileMock(FORK_BLOCK);
+///        bytes memory code = address(mock).code;
+///        vm.etch(PRECOMPILE_ADDR, code);
+contract FfiPrecompileMock {
+
+    Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+
+    /// @dev Baked into runtime bytecode — preserved across vm.etch copies.
+    uint256 private immutable BLOCK;
+
+    constructor(uint256 blockNumber) {
+        BLOCK = blockNumber;
+    }
+
+    /// @dev Forwards msg.data to the real precompile via `cast call` and returns
+    ///      the raw result. Gas metering is paused so the cheatcode overhead
+    ///      doesn't count against the caller's gas cap.
+    fallback() external {
+        vm.pauseGasMetering();
+
+        string[] memory cmd = new string[](9);
+        cmd[0] = "cast";
+        cmd[1] = "call";
+        cmd[2] = vm.toString(address(this)); // precompile address after etch
+        cmd[3] = "--data";
+        cmd[4] = vm.toString(msg.data); // raw ABI-encoded precompile input
+        cmd[5] = "--rpc-url";
+        cmd[6] = vm.envString("FORK_RPC_URL");
+        cmd[7] = "--block";
+        cmd[8] = vm.toString(BLOCK);
+
+        bytes memory result = vm.ffi(cmd);
+
+        vm.resumeGasMetering();
+
+        assembly {
+            return(add(result, 0x20), mload(result))
+        }
+    }
+
+}
