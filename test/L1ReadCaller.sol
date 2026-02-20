@@ -35,7 +35,10 @@ contract L1ReadCaller {
         return L1Read.spotBalance(user, token);
     }
 
-    function userVaultEquity(address user, address vault)
+    function userVaultEquity(
+        address user,
+        address vault
+    )
         external
         view
         returns (UserVaultEquity memory)
@@ -91,7 +94,10 @@ contract L1ReadCaller {
         return L1Read.bbo(asset);
     }
 
-    function accountMarginSummary(uint32 perpDexIndex, address user)
+    function accountMarginSummary(
+        uint32 perpDexIndex,
+        address user
+    )
         external
         view
         returns (AccountMarginSummary memory)
@@ -103,7 +109,10 @@ contract L1ReadCaller {
         return L1Read.coreUserExists(user);
     }
 
-    function borrowLendUserState(address user, uint64 token)
+    function borrowLendUserState(
+        address user,
+        uint64 token
+    )
         external
         view
         returns (BorrowLendUserTokenState memory)

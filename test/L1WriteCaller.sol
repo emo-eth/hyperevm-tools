@@ -14,7 +14,9 @@ contract L1WriteCaller {
         bool reduceOnly,
         TimeInForce tif,
         uint128 cloid
-    ) external {
+    )
+        external
+    {
         L1Write.sendLimitOrder(asset, isBuy, limitPx, sz, reduceOnly, tif, cloid);
     }
 
@@ -42,7 +44,11 @@ contract L1WriteCaller {
         L1Write.sendUsdClassTransfer(ntl, toPerp);
     }
 
-    function sendFinalizeEvmContract(uint64 token, FinalizeVariant variant, uint64 createNonce)
+    function sendFinalizeEvmContract(
+        uint64 token,
+        FinalizeVariant variant,
+        uint64 createNonce
+    )
         external
     {
         L1Write.sendFinalizeEvmContract(token, variant, createNonce);
@@ -71,7 +77,9 @@ contract L1WriteCaller {
         uint32 destinationDex,
         uint64 token,
         uint64 amount
-    ) external {
+    )
+        external
+    {
         L1Write.sendAsset(destination, subAccount, sourceDex, destinationDex, token, amount);
     }
 
@@ -79,7 +87,11 @@ contract L1WriteCaller {
         L1Write.sendReflectEvmSupplyChange(token, amount, isMint);
     }
 
-    function sendBorrowLendOperation(BorrowLendOperation operation, uint64 token, uint64 amount)
+    function sendBorrowLendOperation(
+        BorrowLendOperation operation,
+        uint64 token,
+        uint64 amount
+    )
         external
     {
         L1Write.sendBorrowLendOperation(operation, token, amount);

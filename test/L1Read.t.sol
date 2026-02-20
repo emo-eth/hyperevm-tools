@@ -56,13 +56,18 @@ contract L1ReadTest is Test {
         address precompileAddr,
         bytes memory expectedCalldata,
         bytes memory returnData
-    ) internal {
+    )
+        internal
+    {
         // Verify the correct call is made and mock the return
         vm.expectCall(precompileAddr, expectedCalldata);
         vm.mockCall(precompileAddr, expectedCalldata, returnData);
     }
 
-    function _setupFailingPrecompile(address precompileAddr, bytes memory expectedCalldata)
+    function _setupFailingPrecompile(
+        address precompileAddr,
+        bytes memory expectedCalldata
+    )
         internal
     {
         // Verify the correct call is made and mock a revert
@@ -199,7 +204,10 @@ contract L1ReadTest is Test {
         this.userVaultEquity(user, vault);
     }
 
-    function userVaultEquity(address user, address vault)
+    function userVaultEquity(
+        address user,
+        address vault
+    )
         external
         view
         returns (UserVaultEquity memory)
@@ -639,7 +647,10 @@ contract L1ReadTest is Test {
         this.accountMarginSummary(perpDexIndex, user);
     }
 
-    function accountMarginSummary(uint32 perpDexIndex, address user)
+    function accountMarginSummary(
+        uint32 perpDexIndex,
+        address user
+    )
         external
         view
         returns (AccountMarginSummary memory)
@@ -707,7 +718,10 @@ contract L1ReadTest is Test {
         this.borrowLendUserState(user, token);
     }
 
-    function borrowLendUserState(address user, uint64 token)
+    function borrowLendUserState(
+        address user,
+        uint64 token
+    )
         external
         view
         returns (BorrowLendUserTokenState memory)

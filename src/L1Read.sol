@@ -331,7 +331,10 @@ library L1Read {
     /// @param user Address of the user.
     /// @param vault Address of the vault.
     /// @return The user's equity and lock status in the vault.
-    function userVaultEquity(address user, address vault)
+    function userVaultEquity(
+        address user,
+        address vault
+    )
         internal
         view
         returns (UserVaultEquity memory)
@@ -505,7 +508,10 @@ library L1Read {
     /// @param perpDexIndex The perp dex index (0 for the main perp dex).
     /// @param user Address of the user.
     /// @return Margin summary including account value, margin used, and notional position.
-    function accountMarginSummary(uint32 perpDexIndex, address user)
+    function accountMarginSummary(
+        uint32 perpDexIndex,
+        address user
+    )
         internal
         view
         returns (AccountMarginSummary memory)
@@ -540,7 +546,10 @@ library L1Read {
     /// @param user Address of the user.
     /// @param token Token index.
     /// @return The user's borrow and supply positions with basis and current value.
-    function borrowLendUserState(address user, uint64 token)
+    function borrowLendUserState(
+        address user,
+        uint64 token
+    )
         internal
         view
         returns (BorrowLendUserTokenState memory)
