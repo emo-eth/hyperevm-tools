@@ -234,6 +234,9 @@ error BorrowLendReserveStatePrecompileCallFailed();
 /// consume all gas passed into the call frame. Gas caps (~20% above formula) are applied where
 /// output size
 ///      is fixed to limit this. Functions with dynamic-length outputs are left uncapped.
+///      Each query has a reverting version (e.g. `position`) that reverts with a custom error on
+///      precompile failure, and a non-reverting `try` version (e.g. `tryPosition`) that returns
+///      a `(result, bool success)` tuple. On failure the result is zero-initialized.
 library L1Read {
 
     address constant POSITION_PRECOMPILE_ADDRESS = 0x0000000000000000000000000000000000000800;
@@ -284,18 +287,37 @@ library L1Read {
     uint256 constant BORROW_LEND_USER_STATE_GAS = 17_500; // 2000 + 65*(64+128) = 14480
     uint256 constant BORROW_LEND_RESERVE_STATE_GAS = 25_000; // 2000 + 65*(32+256) = 20720
 
+    // ============ Position (uint16 perp) ============
+
     /// @notice Query a user's perpetual position by 16-bit perp index.
     /// @param user Address of the user.
     /// @param perp 16-bit perpetual asset index.
     /// @return The user's position for the given perp.
     function position(address user, uint16 perp) internal view returns (Position memory) {
-        (bool success, bytes memory result) =
-            POSITION_PRECOMPILE_ADDRESS.staticcall{ gas: POSITION_GAS }(abi.encode(user, perp));
-        if (!success) {
-            revert PositionPrecompileCallFailed();
-        }
-        return abi.decode(result, (Position));
+        (Position memory result, bool success) = tryPosition(user, perp);
+        require(success, PositionPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `position`. Returns success=false if the precompile call
+    /// fails.
+    function tryPosition(
+        address user,
+        uint16 perp
+    )
+        internal
+        view
+        returns (Position memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            POSITION_PRECOMPILE_ADDRESS.staticcall{ gas: POSITION_GAS }(abi.encode(user, perp));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (Position)), true);
+    }
+
+    // ============ Position2 (uint32 perp) ============
 
     /// @notice Query a user's perpetual position by 32-bit perp index.
     /// @dev Supports the extended perp index range (> uint16). Returns the same Position struct as
@@ -303,29 +325,63 @@ library L1Read {
     /// @param perp 32-bit perpetual asset index.
     /// @return The user's position for the given perp.
     function position2(address user, uint32 perp) internal view returns (Position memory) {
-        (bool success, bytes memory result) =
-            POSITION2_PRECOMPILE_ADDRESS.staticcall{ gas: POSITION_GAS }(abi.encode(user, perp));
-        if (!success) {
-            revert Position2PrecompileCallFailed();
-        }
-        return abi.decode(result, (Position));
+        (Position memory result, bool success) = tryPosition2(user, perp);
+        require(success, Position2PrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `position2`. Returns success=false if the precompile call
+    /// fails.
+    function tryPosition2(
+        address user,
+        uint32 perp
+    )
+        internal
+        view
+        returns (Position memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            POSITION2_PRECOMPILE_ADDRESS.staticcall{ gas: POSITION_GAS }(abi.encode(user, perp));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (Position)), true);
+    }
+
+    // ============ Spot Balance ============
 
     /// @notice Query a user's spot token balance.
     /// @param user Address of the user.
     /// @param token Token index on HyperCore.
     /// @return The user's spot balance for the given token.
     function spotBalance(address user, uint64 token) internal view returns (SpotBalance memory) {
-        (bool success, bytes memory result) = SPOT_BALANCE_PRECOMPILE_ADDRESS.staticcall{
+        (SpotBalance memory result, bool success) = trySpotBalance(user, token);
+        require(success, SpotBalancePrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `spotBalance`. Returns success=false if the precompile
+    /// call fails.
+    function trySpotBalance(
+        address user,
+        uint64 token
+    )
+        internal
+        view
+        returns (SpotBalance memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = SPOT_BALANCE_PRECOMPILE_ADDRESS.staticcall{
             gas: SPOT_BALANCE_GAS
         }(
             abi.encode(user, token)
         );
-        if (!success) {
-            revert SpotBalancePrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (SpotBalance));
+        return (abi.decode(_result, (SpotBalance)), true);
     }
+
+    // ============ User Vault Equity ============
 
     /// @notice Query a user's equity in a vault.
     /// @param user Address of the user.
@@ -339,170 +395,331 @@ library L1Read {
         view
         returns (UserVaultEquity memory)
     {
-        (bool success, bytes memory result) = VAULT_EQUITY_PRECOMPILE_ADDRESS.staticcall{
+        (UserVaultEquity memory result, bool success) = tryUserVaultEquity(user, vault);
+        require(success, VaultEquityPrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `userVaultEquity`. Returns success=false if the
+    /// precompile call fails.
+    function tryUserVaultEquity(
+        address user,
+        address vault
+    )
+        internal
+        view
+        returns (UserVaultEquity memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = VAULT_EQUITY_PRECOMPILE_ADDRESS.staticcall{
             gas: VAULT_EQUITY_GAS
         }(
             abi.encode(user, vault)
         );
-        if (!success) {
-            revert VaultEquityPrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (UserVaultEquity));
+        return (abi.decode(_result, (UserVaultEquity)), true);
     }
+
+    // ============ Withdrawable ============
 
     /// @notice Query the amount a user can withdraw from HyperCore.
     /// @param user Address of the user.
     /// @return The withdrawable amount.
     function withdrawable(address user) internal view returns (Withdrawable memory) {
-        (bool success, bytes memory result) =
-            WITHDRAWABLE_PRECOMPILE_ADDRESS.staticcall{ gas: WITHDRAWABLE_GAS }(abi.encode(user));
-        if (!success) {
-            revert WithdrawablePrecompileCallFailed();
-        }
-        return abi.decode(result, (Withdrawable));
+        (Withdrawable memory result, bool success) = tryWithdrawable(user);
+        require(success, WithdrawablePrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `withdrawable`. Returns success=false if the precompile
+    /// call fails.
+    function tryWithdrawable(address user)
+        internal
+        view
+        returns (Withdrawable memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            WITHDRAWABLE_PRECOMPILE_ADDRESS.staticcall{ gas: WITHDRAWABLE_GAS }(abi.encode(user));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (Withdrawable)), true);
+    }
+
+    // ============ Delegations ============
 
     /// @notice Query all staking delegations for a user.
     /// @dev No gas cap: output is dynamic-length (Delegation[]).
     /// @param user Address of the delegator.
     /// @return Array of the user's active delegations to validators.
     function delegations(address user) internal view returns (Delegation[] memory) {
-        (bool success, bytes memory result) =
-            DELEGATIONS_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
-        if (!success) {
-            revert DelegationsPrecompileCallFailed();
-        }
-        return abi.decode(result, (Delegation[]));
+        (Delegation[] memory result, bool success) = tryDelegations(user);
+        require(success, DelegationsPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `delegations`. Returns success=false if the precompile
+    /// call fails.
+    function tryDelegations(address user)
+        internal
+        view
+        returns (Delegation[] memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            DELEGATIONS_PRECOMPILE_ADDRESS.staticcall(abi.encode(user));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (Delegation[])), true);
+    }
+
+    // ============ Delegator Summary ============
 
     /// @notice Query an aggregated staking summary for a delegator.
     /// @param user Address of the delegator.
     /// @return Aggregated delegation totals and pending withdrawal counts.
     function delegatorSummary(address user) internal view returns (DelegatorSummary memory) {
-        (bool success, bytes memory result) = DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS.staticcall{
+        (DelegatorSummary memory result, bool success) = tryDelegatorSummary(user);
+        require(success, DelegatorSummaryPrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `delegatorSummary`. Returns success=false if the
+    /// precompile call fails.
+    function tryDelegatorSummary(address user)
+        internal
+        view
+        returns (DelegatorSummary memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS.staticcall{
             gas: DELEGATOR_SUMMARY_GAS
         }(
             abi.encode(user)
         );
-        if (!success) {
-            revert DelegatorSummaryPrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (DelegatorSummary));
+        return (abi.decode(_result, (DelegatorSummary)), true);
     }
+
+    // ============ Mark Price ============
 
     /// @notice Query the mark price of a perpetual asset.
     /// @dev To convert to a float: divide by 10^(6 - szDecimals).
     /// @param index Perpetual asset index.
     /// @return Mark price as a fixed-point integer.
     function markPx(uint32 index) internal view returns (uint64) {
-        (bool success, bytes memory result) =
-            MARK_PX_PRECOMPILE_ADDRESS.staticcall{ gas: MARK_PX_GAS }(abi.encode(index));
-        if (!success) {
-            revert MarkPxPrecompileCallFailed();
-        }
-        return abi.decode(result, (uint64));
+        (uint64 result, bool success) = tryMarkPx(index);
+        require(success, MarkPxPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `markPx`. Returns success=false if the precompile call
+    /// fails.
+    function tryMarkPx(uint32 index) internal view returns (uint64 result, bool success) {
+        (bool _success, bytes memory _result) =
+            MARK_PX_PRECOMPILE_ADDRESS.staticcall{ gas: MARK_PX_GAS }(abi.encode(index));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (uint64)), true);
+    }
+
+    // ============ Oracle Price ============
 
     /// @notice Query the oracle price of a perpetual asset.
     /// @dev To convert to a float: divide by 10^(6 - szDecimals).
     /// @param index Perpetual asset index.
     /// @return Oracle price as a fixed-point integer.
     function oraclePx(uint32 index) internal view returns (uint64) {
-        (bool success, bytes memory result) =
-            ORACLE_PX_PRECOMPILE_ADDRESS.staticcall{ gas: ORACLE_PX_GAS }(abi.encode(index));
-        if (!success) {
-            revert OraclePxPrecompileCallFailed();
-        }
-        return abi.decode(result, (uint64));
+        (uint64 result, bool success) = tryOraclePx(index);
+        require(success, OraclePxPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `oraclePx`. Returns success=false if the precompile call
+    /// fails.
+    function tryOraclePx(uint32 index) internal view returns (uint64 result, bool success) {
+        (bool _success, bytes memory _result) =
+            ORACLE_PX_PRECOMPILE_ADDRESS.staticcall{ gas: ORACLE_PX_GAS }(abi.encode(index));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (uint64)), true);
+    }
+
+    // ============ Spot Price ============
 
     /// @notice Query the spot price of a token.
     /// @dev To convert to a float: divide by 10^(8 - base asset szDecimals).
     /// @param index Spot token index.
     /// @return Spot price as a fixed-point integer.
     function spotPx(uint32 index) internal view returns (uint64) {
-        (bool success, bytes memory result) =
-            SPOT_PX_PRECOMPILE_ADDRESS.staticcall{ gas: SPOT_PX_GAS }(abi.encode(index));
-        if (!success) {
-            revert SpotPxPrecompileCallFailed();
-        }
-        return abi.decode(result, (uint64));
+        (uint64 result, bool success) = trySpotPx(index);
+        require(success, SpotPxPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `spotPx`. Returns success=false if the precompile call
+    /// fails.
+    function trySpotPx(uint32 index) internal view returns (uint64 result, bool success) {
+        (bool _success, bytes memory _result) =
+            SPOT_PX_PRECOMPILE_ADDRESS.staticcall{ gas: SPOT_PX_GAS }(abi.encode(index));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (uint64)), true);
+    }
+
+    // ============ L1 Block Number ============
 
     /// @notice Query the latest L1 block number seen by HyperCore.
     /// @return The L1 block number.
     function l1BlockNumber() internal view returns (uint64) {
-        (bool success, bytes memory result) =
-            L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS.staticcall{ gas: L1_BLOCK_NUMBER_GAS }("");
-        if (!success) {
-            revert L1BlockNumberPrecompileCallFailed();
-        }
-        return abi.decode(result, (uint64));
+        (uint64 result, bool success) = tryL1BlockNumber();
+        require(success, L1BlockNumberPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `l1BlockNumber`. Returns success=false if the precompile
+    /// call fails.
+    function tryL1BlockNumber() internal view returns (uint64 result, bool success) {
+        (bool _success, bytes memory _result) =
+            L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS.staticcall{ gas: L1_BLOCK_NUMBER_GAS }("");
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (uint64)), true);
+    }
+
+    // ============ Perp Asset Info ============
 
     /// @notice Query metadata for a perpetual futures asset.
     /// @dev No gas cap: output contains dynamic-length fields (string).
     /// @param perp Perpetual asset index.
     /// @return Asset metadata including ticker, decimals, leverage limits, and margin mode.
     function perpAssetInfo(uint32 perp) internal view returns (PerpAssetInfo memory) {
-        (bool success, bytes memory result) =
-            PERP_ASSET_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(perp));
-        if (!success) {
-            revert PerpAssetInfoPrecompileCallFailed();
-        }
-        return abi.decode(result, (PerpAssetInfo));
+        (PerpAssetInfo memory result, bool success) = tryPerpAssetInfo(perp);
+        require(success, PerpAssetInfoPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `perpAssetInfo`. Returns success=false if the precompile
+    /// call fails.
+    function tryPerpAssetInfo(uint32 perp)
+        internal
+        view
+        returns (PerpAssetInfo memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            PERP_ASSET_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(perp));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (PerpAssetInfo)), true);
+    }
+
+    // ============ Spot Info ============
 
     /// @notice Query metadata for a spot trading pair.
     /// @dev No gas cap: output contains dynamic-length fields (string).
     /// @param spot Spot pair index.
     /// @return Pair name and constituent token indices.
     function spotInfo(uint32 spot) internal view returns (SpotInfo memory) {
-        (bool success, bytes memory result) =
-            SPOT_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(spot));
-        if (!success) {
-            revert SpotInfoPrecompileCallFailed();
-        }
-        return abi.decode(result, (SpotInfo));
+        (SpotInfo memory result, bool success) = trySpotInfo(spot);
+        require(success, SpotInfoPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `spotInfo`. Returns success=false if the precompile call
+    /// fails.
+    function trySpotInfo(uint32 spot) internal view returns (SpotInfo memory result, bool success) {
+        (bool _success, bytes memory _result) =
+            SPOT_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(spot));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (SpotInfo)), true);
+    }
+
+    // ============ Token Info ============
 
     /// @notice Query metadata for a HIP-1 native token.
     /// @dev No gas cap: output contains dynamic-length fields (string, uint64[]).
     /// @param token Token index.
     /// @return Token metadata including name, decimals, deployer info, and associated spot pairs.
     function tokenInfo(uint32 token) internal view returns (TokenInfo memory) {
-        (bool success, bytes memory result) =
-            TOKEN_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(token));
-        if (!success) {
-            revert TokenInfoPrecompileCallFailed();
-        }
-        return abi.decode(result, (TokenInfo));
+        (TokenInfo memory result, bool success) = tryTokenInfo(token);
+        require(success, TokenInfoPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `tokenInfo`. Returns success=false if the precompile call
+    /// fails.
+    function tryTokenInfo(uint32 token)
+        internal
+        view
+        returns (TokenInfo memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            TOKEN_INFO_PRECOMPILE_ADDRESS.staticcall(abi.encode(token));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (TokenInfo)), true);
+    }
+
+    // ============ Token Supply ============
 
     /// @notice Query supply breakdown for a HIP-1 native token.
     /// @dev No gas cap: output contains dynamic-length fields (UserBalance[]).
     /// @param token Token index.
     /// @return Supply data including max, total, circulating supply, and non-circulating holders.
     function tokenSupply(uint32 token) internal view returns (TokenSupply memory) {
-        (bool success, bytes memory result) =
-            TOKEN_SUPPLY_PRECOMPILE_ADDRESS.staticcall(abi.encode(token));
-        if (!success) {
-            revert TokenSupplyPrecompileCallFailed();
-        }
-        return abi.decode(result, (TokenSupply));
+        (TokenSupply memory result, bool success) = tryTokenSupply(token);
+        require(success, TokenSupplyPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `tokenSupply`. Returns success=false if the precompile
+    /// call fails.
+    function tryTokenSupply(uint32 token)
+        internal
+        view
+        returns (TokenSupply memory result, bool success)
+    {
+        (bool _success, bytes memory _result) =
+            TOKEN_SUPPLY_PRECOMPILE_ADDRESS.staticcall(abi.encode(token));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (TokenSupply)), true);
+    }
+
+    // ============ BBO ============
 
     /// @notice Query the best bid and offer for an asset.
     /// @param asset Asset index.
     /// @return Best bid and ask prices.
     function bbo(uint32 asset) internal view returns (Bbo memory) {
-        (bool success, bytes memory result) =
-            BBO_PRECOMPILE_ADDRESS.staticcall{ gas: BBO_GAS }(abi.encode(asset));
-        if (!success) {
-            revert BboPrecompileCallFailed();
-        }
-        return abi.decode(result, (Bbo));
+        (Bbo memory result, bool success) = tryBbo(asset);
+        require(success, BboPrecompileCallFailed());
+        return result;
     }
+
+    /// @notice Non-reverting version of `bbo`. Returns success=false if the precompile call
+    /// fails.
+    function tryBbo(uint32 asset) internal view returns (Bbo memory result, bool success) {
+        (bool _success, bytes memory _result) =
+            BBO_PRECOMPILE_ADDRESS.staticcall{ gas: BBO_GAS }(abi.encode(asset));
+        if (!_success) {
+            return (result, false);
+        }
+        return (abi.decode(_result, (Bbo)), true);
+    }
+
+    // ============ Account Margin Summary ============
 
     /// @notice Query a user's account margin summary on a perp dex.
     /// @param perpDexIndex The perp dex index (0 for the main perp dex).
@@ -516,31 +733,63 @@ library L1Read {
         view
         returns (AccountMarginSummary memory)
     {
-        (bool success, bytes memory result) = ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS.staticcall{
+        (AccountMarginSummary memory result, bool success) =
+            tryAccountMarginSummary(perpDexIndex, user);
+        require(success, AccountMarginSummaryPrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `accountMarginSummary`. Returns success=false if the
+    /// precompile call fails.
+    function tryAccountMarginSummary(
+        uint32 perpDexIndex,
+        address user
+    )
+        internal
+        view
+        returns (AccountMarginSummary memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS.staticcall{
             gas: ACCOUNT_MARGIN_SUMMARY_GAS
         }(
             abi.encode(perpDexIndex, user)
         );
-        if (!success) {
-            revert AccountMarginSummaryPrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (AccountMarginSummary));
+        return (abi.decode(_result, (AccountMarginSummary)), true);
     }
+
+    // ============ Core User Exists ============
 
     /// @notice Check whether a user account is activated on HyperCore.
     /// @param user Address to check.
     /// @return Whether the user exists on HyperCore.
     function coreUserExists(address user) internal view returns (CoreUserExists memory) {
-        (bool success, bytes memory result) = CORE_USER_EXISTS_PRECOMPILE_ADDRESS.staticcall{
+        (CoreUserExists memory result, bool success) = tryCoreUserExists(user);
+        require(success, CoreUserExistsPrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `coreUserExists`. Returns success=false if the
+    /// precompile call fails.
+    function tryCoreUserExists(address user)
+        internal
+        view
+        returns (CoreUserExists memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = CORE_USER_EXISTS_PRECOMPILE_ADDRESS.staticcall{
             gas: CORE_USER_EXISTS_GAS
         }(
             abi.encode(user)
         );
-        if (!success) {
-            revert CoreUserExistsPrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (CoreUserExists));
+        return (abi.decode(_result, (CoreUserExists)), true);
     }
+
+    // ============ Borrow/Lend User State ============
 
     /// @notice Query a user's borrow/lend state for a specific token.
     /// @param user Address of the user.
@@ -554,16 +803,33 @@ library L1Read {
         view
         returns (BorrowLendUserTokenState memory)
     {
-        (bool success, bytes memory result) = BORROW_LEND_USER_STATE_PRECOMPILE_ADDRESS.staticcall{
+        (BorrowLendUserTokenState memory result, bool success) = tryBorrowLendUserState(user, token);
+        require(success, BorrowLendUserStatePrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `borrowLendUserState`. Returns success=false if the
+    /// precompile call fails.
+    function tryBorrowLendUserState(
+        address user,
+        uint64 token
+    )
+        internal
+        view
+        returns (BorrowLendUserTokenState memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = BORROW_LEND_USER_STATE_PRECOMPILE_ADDRESS.staticcall{
             gas: BORROW_LEND_USER_STATE_GAS
         }(
             abi.encode(user, token)
         );
-        if (!success) {
-            revert BorrowLendUserStatePrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (BorrowLendUserTokenState));
+        return (abi.decode(_result, (BorrowLendUserTokenState)), true);
     }
+
+    // ============ Borrow/Lend Reserve State ============
 
     /// @notice Query the global borrow/lend reserve state for a token.
     /// @param token Token index.
@@ -573,15 +839,27 @@ library L1Read {
         view
         returns (BorrowLendReserveState memory)
     {
-        (bool success, bytes memory result) = BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS.staticcall{
+        (BorrowLendReserveState memory result, bool success) = tryBorrowLendReserveState(token);
+        require(success, BorrowLendReserveStatePrecompileCallFailed());
+        return result;
+    }
+
+    /// @notice Non-reverting version of `borrowLendReserveState`. Returns success=false if the
+    /// precompile call fails.
+    function tryBorrowLendReserveState(uint64 token)
+        internal
+        view
+        returns (BorrowLendReserveState memory result, bool success)
+    {
+        (bool _success, bytes memory _result) = BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS.staticcall{
             gas: BORROW_LEND_RESERVE_STATE_GAS
         }(
             abi.encode(token)
         );
-        if (!success) {
-            revert BorrowLendReserveStatePrecompileCallFailed();
+        if (!_success) {
+            return (result, false);
         }
-        return abi.decode(result, (BorrowLendReserveState));
+        return (abi.decode(_result, (BorrowLendReserveState)), true);
     }
 
 }
