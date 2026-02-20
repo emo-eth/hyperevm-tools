@@ -41,12 +41,11 @@ library HyperliquidTestFixture {
     /// @param rpcUrl RPC endpoint URL.
     /// @param blockNumber Block to pin the fork to. 0 = latest.
     function setUp(string memory rpcUrl, uint256 blockNumber) internal {
-        // Create fork; resolve actual block number when 0 (latest) is requested
+        // Create fork
         if (blockNumber > 0) {
             vm.createSelectFork(rpcUrl, blockNumber);
         } else {
             vm.createSelectFork(rpcUrl);
-            blockNumber = block.number;
         }
         vm.setEnv("FORK_RPC_URL", rpcUrl);
 
