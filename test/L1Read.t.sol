@@ -780,4 +780,622 @@ contract L1ReadTest is Test {
         return caller.borrowLendReserveState(token);
     }
 
+    // ============ try* variant tests ============
+
+    function test_tryPosition_success() public {
+        address user = makeAddr("user");
+        uint16 perp = 1;
+        Position memory expectedPos = Position({
+            szi: 1000, entryNtl: 50_000, isolatedRawUsd: 2000, leverage: 10, isIsolated: true
+        });
+
+        bytes memory expectedCalldata = abi.encode(user, perp);
+        _setupMockPrecompile(
+            L1Read.POSITION_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPos)
+        );
+
+        (Position memory result, bool success) = caller.tryPosition(user, perp);
+        assertTrue(success);
+        assertEq(result.szi, expectedPos.szi);
+        assertEq(result.entryNtl, expectedPos.entryNtl);
+        assertEq(result.isolatedRawUsd, expectedPos.isolatedRawUsd);
+        assertEq(result.leverage, expectedPos.leverage);
+        assertEq(result.isIsolated, expectedPos.isIsolated);
+    }
+
+    function test_tryPosition_fail() public {
+        address user = makeAddr("user");
+        uint16 perp = 1;
+
+        bytes memory expectedCalldata = abi.encode(user, perp);
+        _setupFailingPrecompile(L1Read.POSITION_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (Position memory result, bool success) = caller.tryPosition(user, perp);
+        assertFalse(success);
+        assertEq(result.szi, 0);
+        assertEq(result.entryNtl, 0);
+        assertEq(result.isolatedRawUsd, 0);
+        assertEq(result.leverage, 0);
+        assertFalse(result.isIsolated);
+    }
+
+    function test_tryPosition2_success() public {
+        address user = makeAddr("user");
+        uint32 perp = 65_535;
+        Position memory expectedPos = Position({
+            szi: -4321, entryNtl: 75_000, isolatedRawUsd: -1000, leverage: 5, isIsolated: false
+        });
+
+        bytes memory expectedCalldata = abi.encode(user, perp);
+        _setupMockPrecompile(
+            L1Read.POSITION2_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPos)
+        );
+
+        (Position memory result, bool success) = caller.tryPosition2(user, perp);
+        assertTrue(success);
+        assertEq(result.szi, expectedPos.szi);
+        assertEq(result.entryNtl, expectedPos.entryNtl);
+    }
+
+    function test_tryPosition2_fail() public {
+        address user = makeAddr("user");
+        uint32 perp = 65_535;
+
+        bytes memory expectedCalldata = abi.encode(user, perp);
+        _setupFailingPrecompile(L1Read.POSITION2_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (Position memory result, bool success) = caller.tryPosition2(user, perp);
+        assertFalse(success);
+        assertEq(result.szi, 0);
+    }
+
+    function test_trySpotBalance_success() public {
+        address user = makeAddr("user");
+        uint64 token = 42;
+        SpotBalance memory expectedBalance =
+            SpotBalance({ total: 10_000, hold: 5000, entryNtl: 25_000 });
+
+        bytes memory expectedCalldata = abi.encode(user, token);
+        _setupMockPrecompile(
+            L1Read.SPOT_BALANCE_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBalance)
+        );
+
+        (SpotBalance memory result, bool success) = caller.trySpotBalance(user, token);
+        assertTrue(success);
+        assertEq(result.total, expectedBalance.total);
+        assertEq(result.hold, expectedBalance.hold);
+        assertEq(result.entryNtl, expectedBalance.entryNtl);
+    }
+
+    function test_trySpotBalance_fail() public {
+        address user = makeAddr("user");
+        uint64 token = 42;
+
+        bytes memory expectedCalldata = abi.encode(user, token);
+        _setupFailingPrecompile(L1Read.SPOT_BALANCE_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (SpotBalance memory result, bool success) = caller.trySpotBalance(user, token);
+        assertFalse(success);
+        assertEq(result.total, 0);
+        assertEq(result.hold, 0);
+        assertEq(result.entryNtl, 0);
+    }
+
+    function test_tryUserVaultEquity_success() public {
+        address user = makeAddr("user");
+        address vault = makeAddr("vault");
+        UserVaultEquity memory expectedEquity =
+            UserVaultEquity({ equity: 1_000_000, lockedUntilTimestamp: 1_234_567_890 });
+
+        bytes memory expectedCalldata = abi.encode(user, vault);
+        _setupMockPrecompile(
+            L1Read.VAULT_EQUITY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedEquity)
+        );
+
+        (UserVaultEquity memory result, bool success) = caller.tryUserVaultEquity(user, vault);
+        assertTrue(success);
+        assertEq(result.equity, expectedEquity.equity);
+        assertEq(result.lockedUntilTimestamp, expectedEquity.lockedUntilTimestamp);
+    }
+
+    function test_tryUserVaultEquity_fail() public {
+        address user = makeAddr("user");
+        address vault = makeAddr("vault");
+
+        bytes memory expectedCalldata = abi.encode(user, vault);
+        _setupFailingPrecompile(L1Read.VAULT_EQUITY_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (UserVaultEquity memory result, bool success) = caller.tryUserVaultEquity(user, vault);
+        assertFalse(success);
+        assertEq(result.equity, 0);
+        assertEq(result.lockedUntilTimestamp, 0);
+    }
+
+    function test_tryWithdrawable_success() public {
+        address user = makeAddr("user");
+        Withdrawable memory expectedWithdrawable = Withdrawable({ withdrawable: 500_000 });
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupMockPrecompile(
+            L1Read.WITHDRAWABLE_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedWithdrawable)
+        );
+
+        (Withdrawable memory result, bool success) = caller.tryWithdrawable(user);
+        assertTrue(success);
+        assertEq(result.withdrawable, expectedWithdrawable.withdrawable);
+    }
+
+    function test_tryWithdrawable_fail() public {
+        address user = makeAddr("user");
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupFailingPrecompile(L1Read.WITHDRAWABLE_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (Withdrawable memory result, bool success) = caller.tryWithdrawable(user);
+        assertFalse(success);
+        assertEq(result.withdrawable, 0);
+    }
+
+    function test_tryDelegations_success() public {
+        address user = makeAddr("user");
+        Delegation[] memory expectedDelegations = new Delegation[](2);
+        expectedDelegations[0] = Delegation({
+            validator: makeAddr("validator1"), amount: 1000, lockedUntilTimestamp: 1_234_567_890
+        });
+        expectedDelegations[1] = Delegation({
+            validator: makeAddr("validator2"), amount: 2000, lockedUntilTimestamp: 1_234_567_900
+        });
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupMockPrecompile(
+            L1Read.DELEGATIONS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedDelegations)
+        );
+
+        (Delegation[] memory result, bool success) = caller.tryDelegations(user);
+        assertTrue(success);
+        assertEq(result.length, 2);
+        assertEq(result[0].validator, expectedDelegations[0].validator);
+        assertEq(result[0].amount, expectedDelegations[0].amount);
+    }
+
+    function test_tryDelegations_fail() public {
+        address user = makeAddr("user");
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupFailingPrecompile(L1Read.DELEGATIONS_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (Delegation[] memory result, bool success) = caller.tryDelegations(user);
+        assertFalse(success);
+        assertEq(result.length, 0);
+    }
+
+    function test_tryDelegatorSummary_success() public {
+        address user = makeAddr("user");
+        DelegatorSummary memory expectedSummary = DelegatorSummary({
+            delegated: 10_000,
+            undelegated: 5000,
+            totalPendingWithdrawal: 2000,
+            nPendingWithdrawals: 3
+        });
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupMockPrecompile(
+            L1Read.DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedSummary)
+        );
+
+        (DelegatorSummary memory result, bool success) = caller.tryDelegatorSummary(user);
+        assertTrue(success);
+        assertEq(result.delegated, expectedSummary.delegated);
+        assertEq(result.undelegated, expectedSummary.undelegated);
+    }
+
+    function test_tryDelegatorSummary_fail() public {
+        address user = makeAddr("user");
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupFailingPrecompile(L1Read.DELEGATOR_SUMMARY_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (DelegatorSummary memory result, bool success) = caller.tryDelegatorSummary(user);
+        assertFalse(success);
+        assertEq(result.delegated, 0);
+    }
+
+    function test_tryMarkPx_success() public {
+        uint32 index = 1;
+        uint64 expectedPrice = 100_000_000;
+
+        bytes memory expectedCalldata = abi.encode(index);
+        _setupMockPrecompile(
+            L1Read.MARK_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice)
+        );
+
+        (uint64 result, bool success) = caller.tryMarkPx(index);
+        assertTrue(success);
+        assertEq(result, expectedPrice);
+    }
+
+    function test_tryMarkPx_fail() public {
+        uint32 index = 1;
+
+        bytes memory expectedCalldata = abi.encode(index);
+        _setupFailingPrecompile(L1Read.MARK_PX_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (uint64 result, bool success) = caller.tryMarkPx(index);
+        assertFalse(success);
+        assertEq(result, 0);
+    }
+
+    function test_tryOraclePx_success() public {
+        uint32 index = 1;
+        uint64 expectedPrice = 99_500_000;
+
+        bytes memory expectedCalldata = abi.encode(index);
+        _setupMockPrecompile(
+            L1Read.ORACLE_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice)
+        );
+
+        (uint64 result, bool success) = caller.tryOraclePx(index);
+        assertTrue(success);
+        assertEq(result, expectedPrice);
+    }
+
+    function test_tryOraclePx_fail() public {
+        uint32 index = 1;
+
+        bytes memory expectedCalldata = abi.encode(index);
+        _setupFailingPrecompile(L1Read.ORACLE_PX_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (uint64 result, bool success) = caller.tryOraclePx(index);
+        assertFalse(success);
+        assertEq(result, 0);
+    }
+
+    function test_trySpotPx_success() public {
+        uint32 index = 1;
+        uint64 expectedPrice = 98_000_000;
+
+        bytes memory expectedCalldata = abi.encode(index);
+        _setupMockPrecompile(
+            L1Read.SPOT_PX_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedPrice)
+        );
+
+        (uint64 result, bool success) = caller.trySpotPx(index);
+        assertTrue(success);
+        assertEq(result, expectedPrice);
+    }
+
+    function test_trySpotPx_fail() public {
+        uint32 index = 1;
+
+        bytes memory expectedCalldata = abi.encode(index);
+        _setupFailingPrecompile(L1Read.SPOT_PX_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (uint64 result, bool success) = caller.trySpotPx(index);
+        assertFalse(success);
+        assertEq(result, 0);
+    }
+
+    function test_tryL1BlockNumber_success() public {
+        uint64 expectedBlockNumber = 12_345;
+
+        bytes memory expectedCalldata = "";
+        _setupMockPrecompile(
+            L1Read.L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedBlockNumber)
+        );
+
+        (uint64 result, bool success) = caller.tryL1BlockNumber();
+        assertTrue(success);
+        assertEq(result, expectedBlockNumber);
+    }
+
+    function test_tryL1BlockNumber_fail() public {
+        bytes memory expectedCalldata = "";
+        _setupFailingPrecompile(L1Read.L1_BLOCK_NUMBER_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (uint64 result, bool success) = caller.tryL1BlockNumber();
+        assertFalse(success);
+        assertEq(result, 0);
+    }
+
+    function test_tryPerpAssetInfo_success() public {
+        uint32 perp = 1;
+        PerpAssetInfo memory expectedInfo = PerpAssetInfo({
+            coin: "BTC", marginTableId: 10, szDecimals: 8, maxLeverage: 20, onlyIsolated: false
+        });
+
+        bytes memory expectedCalldata = abi.encode(perp);
+        _setupMockPrecompile(
+            L1Read.PERP_ASSET_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo)
+        );
+
+        (PerpAssetInfo memory result, bool success) = caller.tryPerpAssetInfo(perp);
+        assertTrue(success);
+        assertEq(keccak256(bytes(result.coin)), keccak256(bytes(expectedInfo.coin)));
+        assertEq(result.maxLeverage, expectedInfo.maxLeverage);
+    }
+
+    function test_tryPerpAssetInfo_fail() public {
+        uint32 perp = 1;
+
+        bytes memory expectedCalldata = abi.encode(perp);
+        _setupFailingPrecompile(L1Read.PERP_ASSET_INFO_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (PerpAssetInfo memory result, bool success) = caller.tryPerpAssetInfo(perp);
+        assertFalse(success);
+        assertEq(result.marginTableId, 0);
+        assertEq(bytes(result.coin).length, 0);
+    }
+
+    function test_trySpotInfo_success() public {
+        uint32 spot = 1;
+        SpotInfo memory expectedInfo = SpotInfo({ name: "BTC/USD", tokens: [uint64(1), uint64(2)] });
+
+        bytes memory expectedCalldata = abi.encode(spot);
+        _setupMockPrecompile(
+            L1Read.SPOT_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo)
+        );
+
+        (SpotInfo memory result, bool success) = caller.trySpotInfo(spot);
+        assertTrue(success);
+        assertEq(keccak256(bytes(result.name)), keccak256(bytes(expectedInfo.name)));
+        assertEq(result.tokens[0], expectedInfo.tokens[0]);
+    }
+
+    function test_trySpotInfo_fail() public {
+        uint32 spot = 1;
+
+        bytes memory expectedCalldata = abi.encode(spot);
+        _setupFailingPrecompile(L1Read.SPOT_INFO_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (SpotInfo memory result, bool success) = caller.trySpotInfo(spot);
+        assertFalse(success);
+        assertEq(bytes(result.name).length, 0);
+        assertEq(result.tokens[0], 0);
+    }
+
+    function test_tryTokenInfo_success() public {
+        uint32 token = 1;
+        TokenInfo memory expectedInfo = TokenInfo({
+            name: "Bitcoin",
+            spots: new uint64[](2),
+            deployerTradingFeeShare: 100,
+            deployer: makeAddr("deployer"),
+            evmContract: makeAddr("evmContract"),
+            szDecimals: 8,
+            weiDecimals: 18,
+            evmExtraWeiDecimals: 0
+        });
+        expectedInfo.spots[0] = 1;
+        expectedInfo.spots[1] = 2;
+
+        bytes memory expectedCalldata = abi.encode(token);
+        _setupMockPrecompile(
+            L1Read.TOKEN_INFO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedInfo)
+        );
+
+        (TokenInfo memory result, bool success) = caller.tryTokenInfo(token);
+        assertTrue(success);
+        assertEq(keccak256(bytes(result.name)), keccak256(bytes(expectedInfo.name)));
+        assertEq(result.spots.length, 2);
+    }
+
+    function test_tryTokenInfo_fail() public {
+        uint32 token = 1;
+
+        bytes memory expectedCalldata = abi.encode(token);
+        _setupFailingPrecompile(L1Read.TOKEN_INFO_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (TokenInfo memory result, bool success) = caller.tryTokenInfo(token);
+        assertFalse(success);
+        assertEq(bytes(result.name).length, 0);
+        assertEq(result.spots.length, 0);
+    }
+
+    function test_tryTokenSupply_success() public {
+        uint32 token = 1;
+        UserBalance[] memory nonCirculating = new UserBalance[](1);
+        nonCirculating[0] = UserBalance({ user: makeAddr("user"), balance: 1000 });
+        TokenSupply memory expectedSupply = TokenSupply({
+            maxSupply: 21_000_000,
+            totalSupply: 19_000_000,
+            circulatingSupply: 18_999_000,
+            futureEmissions: 500_000,
+            nonCirculatingUserBalances: nonCirculating
+        });
+
+        bytes memory expectedCalldata = abi.encode(token);
+        _setupMockPrecompile(
+            L1Read.TOKEN_SUPPLY_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedSupply)
+        );
+
+        (TokenSupply memory result, bool success) = caller.tryTokenSupply(token);
+        assertTrue(success);
+        assertEq(result.maxSupply, expectedSupply.maxSupply);
+        assertEq(result.nonCirculatingUserBalances.length, 1);
+    }
+
+    function test_tryTokenSupply_fail() public {
+        uint32 token = 1;
+
+        bytes memory expectedCalldata = abi.encode(token);
+        _setupFailingPrecompile(L1Read.TOKEN_SUPPLY_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (TokenSupply memory result, bool success) = caller.tryTokenSupply(token);
+        assertFalse(success);
+        assertEq(result.maxSupply, 0);
+        assertEq(result.nonCirculatingUserBalances.length, 0);
+    }
+
+    function test_tryBbo_success() public {
+        uint32 asset = 1;
+        Bbo memory expectedBbo = Bbo({ bid: 99_500_000, ask: 100_500_000 });
+
+        bytes memory expectedCalldata = abi.encode(asset);
+        _setupMockPrecompile(
+            L1Read.BBO_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedBbo)
+        );
+
+        (Bbo memory result, bool success) = caller.tryBbo(asset);
+        assertTrue(success);
+        assertEq(result.bid, expectedBbo.bid);
+        assertEq(result.ask, expectedBbo.ask);
+    }
+
+    function test_tryBbo_fail() public {
+        uint32 asset = 1;
+
+        bytes memory expectedCalldata = abi.encode(asset);
+        _setupFailingPrecompile(L1Read.BBO_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (Bbo memory result, bool success) = caller.tryBbo(asset);
+        assertFalse(success);
+        assertEq(result.bid, 0);
+        assertEq(result.ask, 0);
+    }
+
+    function test_tryAccountMarginSummary_success() public {
+        uint32 perpDexIndex = 1;
+        address user = makeAddr("user");
+        AccountMarginSummary memory expectedSummary = AccountMarginSummary({
+            accountValue: 1_000_000, marginUsed: 500_000, ntlPos: 2_000_000, rawUsd: 800_000
+        });
+
+        bytes memory expectedCalldata = abi.encode(perpDexIndex, user);
+        _setupMockPrecompile(
+            L1Read.ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedSummary)
+        );
+
+        (AccountMarginSummary memory result, bool success) =
+            caller.tryAccountMarginSummary(perpDexIndex, user);
+        assertTrue(success);
+        assertEq(result.accountValue, expectedSummary.accountValue);
+        assertEq(result.marginUsed, expectedSummary.marginUsed);
+    }
+
+    function test_tryAccountMarginSummary_fail() public {
+        uint32 perpDexIndex = 1;
+        address user = makeAddr("user");
+
+        bytes memory expectedCalldata = abi.encode(perpDexIndex, user);
+        _setupFailingPrecompile(L1Read.ACCOUNT_MARGIN_SUMMARY_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (AccountMarginSummary memory result, bool success) =
+            caller.tryAccountMarginSummary(perpDexIndex, user);
+        assertFalse(success);
+        assertEq(result.accountValue, 0);
+    }
+
+    function test_tryCoreUserExists_success() public {
+        address user = makeAddr("user");
+        CoreUserExists memory expectedExists = CoreUserExists({ exists: true });
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupMockPrecompile(
+            L1Read.CORE_USER_EXISTS_PRECOMPILE_ADDRESS, expectedCalldata, abi.encode(expectedExists)
+        );
+
+        (CoreUserExists memory result, bool success) = caller.tryCoreUserExists(user);
+        assertTrue(success);
+        assertTrue(result.exists);
+    }
+
+    function test_tryCoreUserExists_fail() public {
+        address user = makeAddr("user");
+
+        bytes memory expectedCalldata = abi.encode(user);
+        _setupFailingPrecompile(L1Read.CORE_USER_EXISTS_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (CoreUserExists memory result, bool success) = caller.tryCoreUserExists(user);
+        assertFalse(success);
+        assertFalse(result.exists);
+    }
+
+    function test_tryBorrowLendUserState_success() public {
+        address user = makeAddr("user");
+        uint64 token = 1;
+        BorrowLendUserTokenState memory expectedState = BorrowLendUserTokenState({
+            borrow: BasisAndValue({ basis: 1000, value: 2000 }),
+            supply: BasisAndValue({ basis: 5000, value: 10_000 })
+        });
+
+        bytes memory expectedCalldata = abi.encode(user, token);
+        _setupMockPrecompile(
+            L1Read.BORROW_LEND_USER_STATE_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedState)
+        );
+
+        (BorrowLendUserTokenState memory result, bool success) =
+            caller.tryBorrowLendUserState(user, token);
+        assertTrue(success);
+        assertEq(result.borrow.basis, expectedState.borrow.basis);
+        assertEq(result.borrow.value, expectedState.borrow.value);
+        assertEq(result.supply.basis, expectedState.supply.basis);
+        assertEq(result.supply.value, expectedState.supply.value);
+    }
+
+    function test_tryBorrowLendUserState_fail() public {
+        address user = makeAddr("user");
+        uint64 token = 1;
+
+        bytes memory expectedCalldata = abi.encode(user, token);
+        _setupFailingPrecompile(L1Read.BORROW_LEND_USER_STATE_PRECOMPILE_ADDRESS, expectedCalldata);
+
+        (BorrowLendUserTokenState memory result, bool success) =
+            caller.tryBorrowLendUserState(user, token);
+        assertFalse(success);
+        assertEq(result.borrow.basis, 0);
+        assertEq(result.supply.basis, 0);
+    }
+
+    function test_tryBorrowLendReserveState_success() public {
+        uint64 token = 1;
+        BorrowLendReserveState memory expectedState = BorrowLendReserveState({
+            borrowYearlyRateBps: 500,
+            supplyYearlyRateBps: 300,
+            balance: 1_000_000,
+            utilizationBps: 7500,
+            oraclePx: 100_000_000,
+            ltvBps: 8000,
+            totalSupplied: 10_000_000,
+            totalBorrowed: 7_500_000
+        });
+
+        bytes memory expectedCalldata = abi.encode(token);
+        _setupMockPrecompile(
+            L1Read.BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS,
+            expectedCalldata,
+            abi.encode(expectedState)
+        );
+
+        (BorrowLendReserveState memory result, bool success) =
+            caller.tryBorrowLendReserveState(token);
+        assertTrue(success);
+        assertEq(result.borrowYearlyRateBps, expectedState.borrowYearlyRateBps);
+        assertEq(result.totalBorrowed, expectedState.totalBorrowed);
+    }
+
+    function test_tryBorrowLendReserveState_fail() public {
+        uint64 token = 1;
+
+        bytes memory expectedCalldata = abi.encode(token);
+        _setupFailingPrecompile(
+            L1Read.BORROW_LEND_RESERVE_STATE_PRECOMPILE_ADDRESS, expectedCalldata
+        );
+
+        (BorrowLendReserveState memory result, bool success) =
+            caller.tryBorrowLendReserveState(token);
+        assertFalse(success);
+        assertEq(result.borrowYearlyRateBps, 0);
+        assertEq(result.totalBorrowed, 0);
+    }
+
 }
