@@ -50,3 +50,8 @@ jobs:
         run: |
           forge test -vvv
         id: test
+
+      - name: Run Forge FFI tests
+        run: |
+          FOUNDRY_PROFILE=ffi forge test -vvv
+        id: test-ffi
