@@ -113,7 +113,7 @@ FOUNDRY_PROFILE=ffi forge test
 
 ### HyperliquidTestFixture
 
-`hyperevm-tools` includes a test fixture that allows networked fork tests to call HyperEVM precompiles and the CoreWriter system contract by using an FFI-based mock to query the real chain using `cast`. No manual mocking is required.
+`hyperevm-tools` includes a test fixture that allows networked fork tests to call HyperEVM precompiles and the CoreWriter system contract by using an FFI-based mock to query the real chain using `cast`. No manual mocking is required. Pass block number `0` to use the RPC's latest block instead of a pinned block.
 
 Since it requires FFI to be enabled, it is recommended to make a separate test profile and directory for forked tests:
 
@@ -131,8 +131,10 @@ import { Test } from "forge-std/Test.sol";
 
 contract MyForkTest is Test {
     function setUp() public {
-        HyperliquidTestFixture.setUp(45_995_652); // pin to block
-        HyperliquidTestFixture.setUp("https://custom-rpc.example.com", 0); // custom RPC, pinned to latest block
+        // Testnet at a pinned block:
+        HyperliquidTestFixture.setUp(45_995_652);
+        // Or custom RPC at latest block (0 = latest):
+        // HyperliquidTestFixture.setUp("https://custom-rpc.example.com", 0);
     }
 
     function test_readPosition() public view {

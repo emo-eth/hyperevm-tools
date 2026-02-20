@@ -5,18 +5,21 @@ import { CoreWriter } from "./CoreWriter.sol";
 
 // ============ Enums ============
 
+/// @notice Order time-in-force policy
 enum TimeInForce {
     Alo, // Encoded as 1
     Gtc, // Encoded as 2
     Ioc // Encoded as 3
 }
 
+/// @notice Variant for finalizing an EVM contract
 enum FinalizeVariant {
     Create, // Encoded as 1
     FirstStorageSlot, // Encoded as 2
     CustomStorageSlot // Encoded as 3
 }
 
+/// @notice Borrow/lend operation type (Testnet-only)
 enum BorrowLendOperation {
     Supply, // 0
     Withdraw // 1
@@ -24,8 +27,11 @@ enum BorrowLendOperation {
 
 // ============ Constants ============
 
+// Sentinel value for the spot DEX index
 uint32 constant SPOT_DEX = type(uint32).max;
+// Sentinel value to maximally apply a borrow/lend operation
 uint64 constant BORROW_LEND_MAX_AMOUNT = 0;
+// Sentinel value indicating no client order ID
 uint128 constant NO_CLOID = 0;
 
 // ============ Library ============
@@ -79,6 +85,13 @@ library L1Write {
     }
 
     /// @notice Sends a limit order action
+    /// @param asset The perp asset index
+    /// @param isBuy Whether this is a buy order
+    /// @param limitPx Raw limit price in HyperCore units (protocol-defined precision)
+    /// @param sz Raw size in HyperCore units (protocol-defined precision)
+    /// @param reduceOnly Whether this is a reduce-only order
+    /// @param tif Time in force
+    /// @param cloid Client order ID (NO_CLOID means no cloid)
     function sendLimitOrder(
         uint32 asset,
         bool isBuy,
@@ -110,6 +123,9 @@ library L1Write {
     }
 
     /// @notice Sends a vault transfer action
+    /// @param vault The vault address
+    /// @param isDeposit Whether this is a deposit (true) or withdrawal (false)
+    /// @param usd Raw USD amount in HyperCore units (protocol-defined precision)
     function sendVaultTransfer(address vault, bool isDeposit, uint64 usd) internal {
         _sendAction(encodeVaultTransfer(vault, isDeposit, usd));
     }
@@ -131,6 +147,9 @@ library L1Write {
     }
 
     /// @notice Sends a token delegate action
+    /// @param validator The validator address
+    /// @param amount Amount to delegate/undelegate
+    /// @param isUndelegate Whether this is an undelegate operation
     function sendTokenDelegate(address validator, uint64 amount, bool isUndelegate) internal {
         _sendAction(encodeTokenDelegate(validator, amount, isUndelegate));
     }
@@ -142,6 +161,7 @@ library L1Write {
     }
 
     /// @notice Sends a staking deposit action
+    /// @param amount Amount to deposit
     function sendStakingDeposit(uint64 amount) internal {
         _sendAction(encodeStakingDeposit(amount));
     }
@@ -153,6 +173,7 @@ library L1Write {
     }
 
     /// @notice Sends a staking withdraw action
+    /// @param amount Amount to withdraw
     function sendStakingWithdraw(uint64 amount) internal {
         _sendAction(encodeStakingWithdraw(amount));
     }
@@ -174,6 +195,9 @@ library L1Write {
     }
 
     /// @notice Sends a spot send action
+    /// @param destination Destination address
+    /// @param token Token index
+    /// @param amount Amount to send
     function sendSpotSend(address destination, uint64 token, uint64 amount) internal {
         _sendAction(encodeSpotSend(destination, token, amount));
     }
@@ -186,6 +210,8 @@ library L1Write {
     }
 
     /// @notice Sends a USD class transfer action
+    /// @param ntl Raw transfer amount in HyperCore units (protocol-defined precision)
+    /// @param toPerp Whether to transfer to perp (true) or from perp (false)
     function sendUsdClassTransfer(uint64 ntl, bool toPerp) internal {
         _sendAction(encodeUsdClassTransfer(ntl, toPerp));
     }
@@ -209,6 +235,9 @@ library L1Write {
     }
 
     /// @notice Sends a finalize EVM contract action
+    /// @param token Token index
+    /// @param variant Finalize variant
+    /// @param createNonce Create nonce (used if variant is Create)
     function sendFinalizeEvmContract(
         uint64 token,
         FinalizeVariant variant,
@@ -234,6 +263,8 @@ library L1Write {
     }
 
     /// @notice Sends an add API wallet action
+    /// @param apiWallet The API wallet address
+    /// @param apiWalletName The API wallet name (empty string makes this the main API wallet/agent)
     function sendAddApiWallet(address apiWallet, string memory apiWalletName) internal {
         _sendAction(encodeAddApiWallet(apiWallet, apiWalletName));
     }
@@ -246,6 +277,8 @@ library L1Write {
     }
 
     /// @notice Sends a cancel order by oid action
+    /// @param asset The perp asset index
+    /// @param oid The order ID to cancel
     function sendCancelOrderByOid(uint32 asset, uint64 oid) internal {
         _sendAction(encodeCancelOrderByOid(asset, oid));
     }
@@ -265,6 +298,8 @@ library L1Write {
     }
 
     /// @notice Sends a cancel order by cloid action
+    /// @param asset The perp asset index
+    /// @param cloid The client order ID to cancel
     function sendCancelOrderByCloid(uint32 asset, uint128 cloid) internal {
         _sendAction(encodeCancelOrderByCloid(asset, cloid));
     }
@@ -284,6 +319,8 @@ library L1Write {
     }
 
     /// @notice Sends an approve builder fee action
+    /// @param maxFeeRate Maximum fee rate in decibps (e.g., 10 for 0.01%)
+    /// @param builder The builder address
     function sendApproveBuilderFee(uint64 maxFeeRate, address builder) internal {
         _sendAction(encodeApproveBuilderFee(maxFeeRate, builder));
     }
@@ -314,6 +351,12 @@ library L1Write {
     }
 
     /// @notice Sends a send asset action
+    /// @param destination Destination address
+    /// @param subAccount Sub-account address (zero address if not using sub-account)
+    /// @param sourceDex Source DEX index (SPOT_DEX for spot)
+    /// @param destinationDex Destination DEX index (SPOT_DEX for spot)
+    /// @param token Token index
+    /// @param amount Amount to send
     function sendAsset(
         address destination,
         address subAccount,
@@ -344,6 +387,9 @@ library L1Write {
     }
 
     /// @notice Sends a reflect EVM supply change for aligned quote token action
+    /// @param token Token index
+    /// @param amount Amount to mint/burn
+    /// @param isMint Whether this is a mint (true) or burn (false)
     function sendReflectEvmSupplyChange(uint64 token, uint64 amount, bool isMint) internal {
         _sendAction(encodeReflectEvmSupplyChange(token, amount, isMint));
     }
@@ -367,6 +413,9 @@ library L1Write {
     }
 
     /// @notice Sends a borrow lend operation action (Testnet-only)
+    /// @param operation Operation type
+    /// @param token Token index
+    /// @param amount Amount (BORROW_LEND_MAX_AMOUNT means maximally apply the operation)
     function sendBorrowLendOperation(
         BorrowLendOperation operation,
         uint64 token,

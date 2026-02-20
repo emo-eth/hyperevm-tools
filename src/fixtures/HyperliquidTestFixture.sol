@@ -41,12 +41,11 @@ library HyperliquidTestFixture {
     /// @param rpcUrl RPC endpoint URL.
     /// @param blockNumber Block to pin the fork to. 0 = latest.
     function setUp(string memory rpcUrl, uint256 blockNumber) internal {
-        // Create fork; resolve actual block number when 0 (latest) is requested
+        // Create fork
         if (blockNumber > 0) {
             vm.createSelectFork(rpcUrl, blockNumber);
         } else {
             vm.createSelectFork(rpcUrl);
-            blockNumber = block.number;
         }
         vm.setEnv("FORK_RPC_URL", rpcUrl);
 
@@ -55,6 +54,8 @@ library HyperliquidTestFixture {
         bytes memory mockCode = address(mock).code;
 
         for (uint256 i = 0x0800; i <= 0x0813; i++) {
+            // casting to uint160 is safe: i is in [0x0800, 0x0813], well below 2^160
+            // forge-lint: disable-next-line(unsafe-typecast)
             address addr = address(uint160(i));
             vm.etch(addr, mockCode);
             vm.allowCheatcodes(addr);
