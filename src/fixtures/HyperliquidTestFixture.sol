@@ -54,6 +54,8 @@ library HyperliquidTestFixture {
         bytes memory mockCode = address(mock).code;
 
         for (uint256 i = 0x0800; i <= 0x0813; i++) {
+            // casting to uint160 is safe: i is in [0x0800, 0x0813], well below 2^160
+            // forge-lint: disable-next-line(unsafe-typecast)
             address addr = address(uint160(i));
             vm.etch(addr, mockCode);
             vm.allowCheatcodes(addr);

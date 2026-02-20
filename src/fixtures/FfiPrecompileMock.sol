@@ -9,20 +9,22 @@ import { Vm } from "forge-std/Vm.sol";
 ///      then `vm.etch` the runtime code to each precompile address.
 ///      Each instance uses `address(this)` as the RPC target so a single
 ///      bytecode works at every address.
+///      Pass 0 for blockNumber to use the RPC's latest block (no --block flag).
 ///
 ///      Requirements:
 ///        - `ffi = true` in foundry.toml
 ///        - `FORK_RPC_URL` env var set (use `vm.setEnv` in setUp)
 ///
 ///      Usage:
-///        FfiPrecompileMock mock = new FfiPrecompileMock(FORK_BLOCK);
+///        FfiPrecompileMock mock = new FfiPrecompileMock(FORK_BLOCK);  // or 0 for latest
 ///        bytes memory code = address(mock).code;
 ///        vm.etch(PRECOMPILE_ADDR, code);
 contract FfiPrecompileMock {
 
     Vm private constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
-    /// @dev Baked into runtime bytecode — preserved across vm.etch copies if non-0   uint256
+    /// @dev Baked into runtime bytecode — preserved across vm.etch copies. If 0, calls use latest
+    /// block (no --block).
     uint256 private immutable BLOCK;
 
     constructor(uint256 blockNumber) {
